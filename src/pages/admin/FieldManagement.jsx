@@ -1,23 +1,19 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
-import { LucidePlus, LucideEdit, LucideTrash } from 'lucide-react';
-import { getFields, createField, updateField, deleteField } from '../services/admin.service';
-import { getVenues } from '../services/admin.service';
-import { Button } from '../components/ui/button';
-import { Dialog } from '../components/ui/dialog';
-import { Card } from '../components/ui/card';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { Toaster, toast } from "react-hot-toast";
+import { LucidePlus, LucideEdit, LucideTrash, LucideX, LucideLayers } from "lucide-react";
+import { getFields, createField, updateField, deleteField, getVenuesForSelect } from "../../services/admin/field.service";
 
 const fieldSchema = z.object({
-  venue_id: z.number(),
-  name: z.string().min(2),
-  type: z.enum(['futsal','basket','badminton']), // sesuai Field::TYPES
-  price_per_hour: z.number().min(0),
-  is_active: z.boolean().optional(),
+  venue_id: z.string().min(1, "Wajib pilih Venue"),
+  name: z.string().min(2, "Minimal 2 karakter"),
+  type: z.enum(["futsal", "badminton", "basket", "tennis"]),
+  price_per_hour: z.coerce.number().min(1000, "Harga minimal 1.000"),
+  is_active: z.boolean().default(true),
 });
 
 export default function AdminFieldPage() {
@@ -25,146 +21,138 @@ export default function AdminFieldPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingField, setEditingField] = useState(null);
 
-  const { data: fields, isLoading } = useQuery(['fields'], getFields);
-  const { data: venues } = useQuery(['venues'], getVenues);
-
-  const createMutation = useMutation(createField, {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['fields']);
-      setModalOpen(false);
-    },
-  });
-
-  const updateMutation = useMutation(({ id, data }) => updateField(id, data), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['fields']);
-      setModalOpen(false);
-      setEditingField(null);
-    },
-  });
-
-  const deleteMutation = useMutation(deleteField, {
-    onSuccess: () => queryClient.invalidateQueries(['fields']),
-  });
+  const { data: fields = [], isLoading } = useQuery({ queryKey: ["admin", "fields"], queryFn: getFields });
+  const { data: venues = [] } = useQuery({ queryKey: ["admin", "venues-select"], queryFn: getVenuesForSelect });
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(fieldSchema),
   });
 
-  const openCreateModal = () => {
-    setEditingField(null);
-    reset({ is_active: true });
-    setModalOpen(true);
-  };
+  const mutation = useMutation({
+    mutationFn: (data) => editingField ? updateField(editingField.id, data) : createField(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "fields"]);
+      toast.success(editingField ? "Lapangan diperbarui" : "Lapangan ditambah");
+      closeModal();
+    },
+    onError: (err) => toast.error(err.response?.data?.message || "Gagal menyimpan"),
+  });
 
-  const openEditModal = (field) => {
+  const delMutation = useMutation({
+    mutationFn: deleteField,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "fields"]);
+      toast.success("Lapangan dihapus");
+    },
+  });
+
+  const openModal = (field = null) => {
     setEditingField(field);
-    reset({
-      venue_id: field.venue_id,
-      name: field.name,
-      type: field.type,
-      price_per_hour: field.price_per_hour,
-      is_active: field.is_active,
-    });
+    reset(field ? { ...field, venue_id: field.venue_id.toString() } : { is_active: true });
     setModalOpen(true);
   };
 
-  const onSubmit = (data) => {
-    if (editingField) {
-      updateMutation.mutate({ id: editingField.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
+  const closeModal = () => { setModalOpen(false); reset(); };
+
+  const formatIDR = (price) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(price);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Manage Fields</h2>
-        <Button onClick={openCreateModal} icon={<LucidePlus size={16} />}>
-          Add Field
-        </Button>
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      <Toaster />
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+        <div>
+          <h2 className="text-2xl font-bold">Data Lapangan</h2>
+          <p className="text-sm text-gray-500">Kelola unit lapangan di setiap venue</p>
+        </div>
+        <button onClick={() => openModal()} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all">
+          <LucidePlus size={20} /> Tambah Lapangan
+        </button>
       </div>
 
-      <Card>
-        {isLoading ? (
-          <p>Loading fields...</p>
-        ) : (
-          <table className="w-full table-auto border-collapse border border-gray-200">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 border">Name</th>
-                <th className="p-2 border">Venue</th>
-                <th className="p-2 border">Type</th>
-                <th className="p-2 border">Price/Hour</th>
-                <th className="p-2 border">Active</th>
-                <th className="p-2 border">Actions</th>
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase">Nama & Venue</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase">Tipe</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase text-center">Harga / Jam</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase text-center">Status</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {fields.map((f) => (
+              <tr key={f.id} className="hover:bg-gray-50">
+                <td className="p-4">
+                  <div className="font-bold">{f.name}</div>
+                  <div className="text-xs text-indigo-600 font-medium">📍 {f.venue?.name}</div>
+                </td>
+                <td className="p-4 text-sm capitalize"><span className="px-2 py-1 bg-gray-100 rounded-md">{f.type}</span></td>
+                <td className="p-4 text-center font-mono text-sm font-semibold text-green-700">{formatIDR(f.price_per_hour)}</td>
+                <td className="p-4 text-center">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${f.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                    {f.is_active ? "Aktif" : "Nonaktif"}
+                  </span>
+                </td>
+                <td className="p-4 flex justify-center gap-2">
+                  <button onClick={() => openModal(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><LucideEdit size={18} /></button>
+                  <button onClick={() => confirm("Hapus lapangan?") && delMutation.mutate(f.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><LucideTrash size={18} /></button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {fields?.data?.map((f) => (
-                <tr key={f.id} className="hover:bg-gray-50">
-                  <td className="p-2 border">{f.name}</td>
-                  <td className="p-2 border">{f.venue?.name || '-'}</td>
-                  <td className="p-2 border">{f.type}</td>
-                  <td className="p-2 border">{f.price_per_hour}</td>
-                  <td className="p-2 border">{f.is_active ? 'Yes' : 'No'}</td>
-                  <td className="p-2 border space-x-2">
-                    <Button size="sm" variant="outline" onClick={() => openEditModal(f)} icon={<LucideEdit size={14} />}>Edit</Button>
-                    <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(f.id)} icon={<LucideTrash size={14} />}>Delete</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Modal */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)}>
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 rounded shadow-md w-96">
-          <h3 className="text-lg font-semibold mb-4">{editingField ? 'Edit Field' : 'Add Field'}</h3>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-            <div>
-              <label className="block text-sm">Venue</label>
-              <select {...register('venue_id')} className={clsx('w-full border p-2 rounded', errors.venue_id && 'border-red-500')}>
-                <option value="">Select venue</option>
-                {venues?.data?.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-              {errors.venue_id && <p className="text-red-500 text-sm">{errors.venue_id.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm">Name</label>
-              <input {...register('name')} className={clsx('w-full border p-2 rounded', errors.name && 'border-red-500')} />
-              {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm">Type</label>
-              <select {...register('type')} className={clsx('w-full border p-2 rounded', errors.type && 'border-red-500')}>
-                <option value="futsal">Futsal</option>
-                <option value="basket">Basket</option>
-                <option value="badminton">Badminton</option>
-              </select>
-              {errors.type && <p className="text-red-500 text-sm">{errors.type.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm">Price per Hour</label>
-              <input type="number" {...register('price_per_hour', { valueAsNumber: true })} className={clsx('w-full border p-2 rounded', errors.price_per_hour && 'border-red-500')} />
-              {errors.price_per_hour && <p className="text-red-500 text-sm">{errors.price_per_hour.message}</p>}
-            </div>
-            <div className="flex items-center space-x-2">
-              <input type="checkbox" {...register('is_active')} />
-              <label>Active</label>
-            </div>
-            <div className="flex justify-end space-x-2 mt-4">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingField ? 'Update' : 'Create'}</Button>
-            </div>
-          </form>
-        </motion.div>
-      </Dialog>
+      <AnimatePresence>
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-black/50" />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+              <div className="flex justify-between mb-6">
+                <h3 className="text-lg font-bold">{editingField ? "Edit Lapangan" : "Tambah Lapangan"}</h3>
+                <button onClick={closeModal}><LucideX size={20} /></button>
+              </div>
+              <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase ml-1">Pilih Venue</label>
+                  <select {...register("venue_id")} className="w-full mt-1 border p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none">
+                    <option value="">-- Pilih Venue --</option>
+                    {venues.map(v => <option key={v.id} value={v.id.toString()}>{v.name}</option>)}
+                  </select>
+                  {errors.venue_id && <p className="text-red-500 text-[10px] mt-1">{errors.venue_id.message}</p>}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nama Lapangan</label>
+                  <input {...register("name")} className="w-full mt-1 border p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Misal: Lapangan A" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Tipe</label>
+                    <select {...register("type")} className="w-full mt-1 border p-3 rounded-xl outline-none appearance-none">
+                      <option value="futsal">Futsal</option>
+                      <option value="badminton">Badminton</option>
+                      <option value="basket">Basket</option>
+                      <option value="tennis">Tennis</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Harga / Jam</label>
+                    <input type="number" {...register("price_per_hour")} className="w-full mt-1 border p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                  <input type="checkbox" {...register("is_active")} id="is_active" className="w-4 h-4 text-indigo-600" />
+                  <label htmlFor="is_active" className="text-sm font-medium">Lapangan Aktif & Bisa Disewa</label>
+                </div>
+                <button type="submit" disabled={mutation.isPending} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">
+                  {mutation.isPending ? "Menyimpan..." : "Simpan Data"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
