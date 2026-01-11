@@ -1,15 +1,88 @@
-import { useNavigate } from "react-router-dom"
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuthStore } from "../../store/auth.store";
 
-export default function AuthPage({ mode = "login" }) {
-  const isRegister = mode === "register"
+
+export default function AuthPage() {
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const handleSubmit = (e) => {
+  const login = useAuthStore((state) => state.login)
+  const register = useAuthStore((state) => state.register)
+
+  const isRegister = location.pathname === "/register"
+
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [passwordConfirm, setPasswordConfirm] = useState("")
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const user = useAuthStore((state) => state.user)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Di sini nanti bisa tambahkan logika validasi:
-    // if (password !== confirmPassword) { alert("Password tidak sama!") }
-    console.log(`Submitting form: ${mode}`)
+    setError(null)
+    setLoading(true)
+
+    try {
+      if (isRegister) {
+        if (password !== passwordConfirm) {
+          setError("Password dan konfirmasi tidak sama")
+          setLoading(false)
+          return
+        }
+
+        await register({
+          name,
+          email,
+          password,
+          password_confirmation: passwordConfirm,
+        })
+
+        navigate("/login")
+        return
+      }
+
+      const user = await login({ email, password })
+      switch (user.role) {
+        case "admin":
+          navigate("/admin/dashboard", { replace: true })
+          break
+
+        case "owner":
+          navigate("/owner/reports", { replace: true })
+          break
+
+        default:
+          navigate("/", { replace: true })
+      }
+
+    } catch (err) {
+      const status = err.response?.status
+
+      if (status === 401) {
+        setError("Email atau password salah")
+      } else if (status === 422) {
+        const errors = err.response.data.errors
+        setError(Object.values(errors)[0][0])
+      } else {
+        setError("Terjadi kesalahan, coba lagi")
+      }
+    } finally {
+      setLoading(false)
+    }
   }
+
+  useEffect(() => {
+    if (!user) return
+
+    if (user.role === "admin") {
+      navigate("/admin/dashboard", { replace: true })
+    } else if (user.role === "owner") {
+      navigate("/owner/reports", { replace: true })
+    }
+  }, [user, navigate])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5] p-4">
@@ -31,34 +104,42 @@ export default function AuthPage({ mode = "login" }) {
             <span className="text-xs text-gray-500 mb-6 block">
               Gunakan email aktif untuk pendaftaran
             </span>
-
-            <input 
-              required
+            {error && (
+              <div className="mb-4 text-sm text-red-600 bg-red-100 p-2 rounded">
+                {error}
+              </div>
+            )}
+            <input
               type="text"
-              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition" 
-              placeholder="Nama Lengkap" 
-            />
-            <input 
-              required
-              type="email"
-              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition" 
-              placeholder="Email" 
-            />
-            <input 
-              required
-              type="password"
-              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition" 
-              placeholder="Password" 
-            />
-            
-            {/* INPUT BARU: KONFIRMASI PASSWORD */}
-            <input 
-              required
-              type="password"
-              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition" 
-              placeholder="Konfirmasi Password" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition"
+              placeholder="Nama Lengkap"
             />
 
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition"
+              placeholder="Email"
+            />
+
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition"
+              placeholder="Password"
+            />
+
+            <input
+              type="password"
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition"
+              placeholder="Konfirmasi Password"
+            />
             <button className="mt-4 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white px-12 py-3 font-bold uppercase tracking-wider hover:opacity-90 transition shadow-lg">
               Daftar
             </button>
@@ -78,20 +159,25 @@ export default function AuthPage({ mode = "login" }) {
             <span className="text-xs text-gray-500 mb-6 block">
               Gunakan akun yang sudah terdaftar
             </span>
-
-            <input 
-              required
+            {error && (
+              <div className="mb-4 text-sm text-red-600 bg-red-100 p-2 rounded">
+                {error}
+              </div>
+            )}
+            <input
               type="email"
-              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition" 
-              placeholder="Email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition"
+              placeholder="Email"
             />
-            <input 
-              required
+            <input
               type="password"
-              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition" 
-              placeholder="Password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-gray-100 p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-sky-300 transition"
+              placeholder="Password"
             />
-
             <div className="text-right mb-4">
                <a href="#" className="text-xs text-gray-600 hover:text-sky-600">Lupa Password?</a>
             </div>
