@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 
 /* ================= PUBLIC ================= */
-import Home from "@/pages/public/home";
+import Home from "@/pages/public/Home";
 import AuthPage from "@/pages/public/Auth";
 import FieldDetails from "@/pages/public/FieldDetails";
 import DetailVenue from "@/pages/public/DetailVenue";
@@ -11,7 +11,7 @@ import MyBookings from "@/pages/public/MyBooking";
 import UploadPayment from "@/pages/public/UploadPayment";
 
 /* ================= LAYOUTS ================= */
-import AdminLayout from "@/layouts/adminlayout";
+import AdminLayout from "@/layouts/AdminLayout";
 import OwnerLayout from "@/layouts/OwnerLayout";
 
 /* ================= ADMIN PAGES ================= */
@@ -22,7 +22,8 @@ import ScheduleManagement from "@/pages/admin/ScheduleManagement";
 import BookingConfirmation from "@/pages/admin/BookingConfirmation";
 
 /* ================= OWNER PAGES ================= */
-// Owner pages bisa ditambah nanti
+import Reports from "@/pages/owner/Report";
+
 
 export default function AppRoutes() {
   return (
@@ -31,7 +32,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
-      <Route path="/fields/:id" element={<DetailVenue />} />
+      <Route path="/venues/:id" element={<DetailVenue />} />
       <Route path="/field-details/:id" element={<FieldDetails />} />
 
       {/* My Bookings & Booking Detail (hanya untuk user login) */}
@@ -56,11 +57,10 @@ export default function AppRoutes() {
       {/* ========= OWNER ========= */}
       <Route element={<ProtectedRoute allowedRoles={["owner"]} />}>
         <Route path="/owner" element={<OwnerLayout />}>
-          <Route index element={<Navigate to="reports" replace />} />
-          <Route path="reports" element={<div>Laporan Owner</div>} />
+          <Route path="dashboard" element={<Reports />} />
+          <Route path="reports" element={<Reports />} />
         </Route>
       </Route>
-
       {/* ========= FALLBACK ========= */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

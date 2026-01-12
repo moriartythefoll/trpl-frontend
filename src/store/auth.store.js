@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  loginRequest,
-  registerRequest,
-  meRequest,
-} from "../services/user.service";
+import { loginRequest, registerRequest, meRequest } from "../services/user.service";
 
 export const useAuthStore = create(
   persist(
@@ -12,20 +8,19 @@ export const useAuthStore = create(
       user: null,
       token: null,
       isLoading: false,
+      isInitialized: false, // Tambahkan ini untuk cek apakah storage sudah dibaca
 
       login: async (payload) => {
-        set({ isLoading: true });
-
+        // set({ isLoading: true });
         try {
           const res = await loginRequest(payload);
-
+          // Langsung set ke store agar sinkron
           set({
             user: res.user,
             token: res.token,
             isLoading: false,
           });
-
-          return res.user;
+          return res.user; // Pastikan user object dikembalikan
         } catch (err) {
           set({ isLoading: false });
           throw err;
@@ -38,16 +33,18 @@ export const useAuthStore = create(
 
       fetchMe: async () => {
         const token = get().token;
-        if (!token) return;
+        if (!token) {
+          set({ isInitialized: true });
+          return;
+        }
 
         set({ isLoading: true });
-
         try {
           const res = await meRequest();
-          set({ user: res, isLoading: false });
+          set({ user: res, isLoading: false, isInitialized: true });
         } catch (err) {
-          // ❌ JANGAN hapus token otomatis
-          set({ user: null, isLoading: false });
+          // Jika token expired/invalid, bersihkan store
+          set({ user: null, token: null, isLoading: false, isInitialized: true });
         }
       },
 
@@ -58,6 +55,9 @@ export const useAuthStore = create(
     }),
     {
       name: "auth-storage",
+      onRehydrateStorage: () => (state) => {
+        state.set({ isInitialized: true });
+      },
       partialize: (state) => ({
         token: state.token,
         user: state.user,
