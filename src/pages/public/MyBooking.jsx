@@ -5,11 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../../components/public/Navbar";
 import userBookingService from "../../services/user/booking.service";
 import { 
-  Trophy, Clock, MapPin, ChevronRight, 
-  CreditCard, Inbox, Loader2, CalendarDays
+  Trophy, MapPin, ChevronRight, 
+  Inbox, Loader2, CalendarDays, Ticket, Zap
 } from "lucide-react";
-
-// ... (import tetap sama)
 
 const MyBookings = () => {
   const navigate = useNavigate();
@@ -20,9 +18,9 @@ const MyBookings = () => {
     queryFn: userBookingService.getMyBookings,
   });
 
-  const filteredBookings = bookings.filter((b) =>
+  const filteredBookings = Array.isArray(bookings) ? bookings.filter((b) =>
     filter === "all" ? true : b.payment_status === filter
-  );
+  ) : [];
 
   const formatRupiah = (num) =>
     new Intl.NumberFormat("id-ID", {
@@ -33,105 +31,116 @@ const MyBookings = () => {
 
   if (isLoading)
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-slate-400 font-bold tracking-tight text-sm">Menyiapkan jadwal Anda...</p>
+      <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-[#ccff00]" size={40} />
+        <p className="text-gray-500 font-black tracking-widest text-[10px] uppercase italic">Retrieving your passes...</p>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#ccff00] selection:text-black">
       <Navbar />
 
       <div className="container mx-auto px-6 lg:px-40 py-24">
-        {/* HEADER SECTION (tetap sama) */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black tracking-tight text-slate-900">
-              Riwayat <span className="text-emerald-600">Booking</span>
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+               <span className="h-px w-8 bg-[#ccff00]"></span>
+               <span className="text-[#ccff00] font-black text-[10px] uppercase tracking-[0.5em]">Activity Center</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter uppercase leading-none">
+              My <span className="text-[#ccff00]">Bookings</span>
             </h1>
-            <p className="text-slate-500 font-medium">Kelola jadwal dan pembayaran lapangan Anda.</p>
           </div>
 
-          <div className="flex bg-slate-200/50 p-1 rounded-2xl overflow-x-auto no-scrollbar">
+          {/* FILTER - ULTRA ROUNDED */}
+          <div className="flex bg-[#111] p-1.5 rounded-[2rem] border border-white/5 overflow-x-auto no-scrollbar">
             {["all", "unpaid", "pending", "paid", "expired"].map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
                   filter === f
-                    ? "bg-white text-emerald-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-[#ccff00] text-black shadow-[0_10px_20px_rgba(204,255,0,0.1)]"
+                    : "text-gray-500 hover:text-white"
                 }`}
               >
-                {f === 'all' ? 'Semua' : f}
+                {f === 'all' ? 'Everything' : f}
               </button>
             ))}
           </div>
         </div>
 
         {/* LIST CARDS */}
-        <div className="grid grid-cols-1 gap-5">
+        <div className="grid grid-cols-1 gap-6">
           <AnimatePresence mode="popLayout">
             {filteredBookings.length > 0 ? (
               filteredBookings.map((b, idx) => (
                 <motion.div
                   layout
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: idx * 0.05 }}
                   key={b.id}
-                  // FIX: Ganti b.id menjadi b.booking_code
                   onClick={() => navigate(`/bookings/${b.booking_code}`)}
-                  className="group bg-white border border-slate-200 rounded-[2rem] p-6 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-900/5 transition-all cursor-pointer"
+                  className="group bg-[#0f0f0f] border border-white/5 rounded-[3rem] p-8 hover:border-[#ccff00]/30 transition-all cursor-pointer relative overflow-hidden"
                 >
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shrink-0">
-                        <Trophy size={26} />
+                  {/* Decorative Zap Background */}
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                    <Ticket size={120} />
+                  </div>
+
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
+                    <div className="flex items-center gap-6">
+                      {/* Icon Status */}
+                      <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shrink-0 border 
+                        ${b.payment_status === 'paid' ? 'bg-[#ccff00]/10 border-[#ccff00]/20 text-[#ccff00]' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                        <Trophy size={28} />
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{b.booking_code}</span>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-black text-[#ccff00] uppercase tracking-widest italic">#{b.booking_code}</span>
                           <StatusPill status={b.payment_status} />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 leading-tight">
-                          {b.items[0]?.schedule?.field?.venue?.name || "Lapangan Olahraga"}
+                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tight">
+                          {b.items[0]?.schedule?.field?.venue?.name || "Premium Arena"}
                         </h3>
-                        <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
-                          <div className="flex items-center gap-1">
-                            <MapPin size={14} className="text-emerald-500" />
+                        <div className="flex flex-wrap gap-5 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin size={12} className="text-[#ccff00]" />
                             {b.items[0]?.schedule?.field?.name}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <CalendarDays size={14} className="text-emerald-500" />
-                            {b.items.length} Sesi
+                          <div className="flex items-center gap-1.5">
+                            <CalendarDays size={12} className="text-[#ccff00]" />
+                            {b.items.length} Session(s)
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-row md:flex-col justify-between items-center md:items-end w-full md:w-auto pt-4 md:pt-0 border-t md:border-none border-slate-100">
+                    <div className="flex flex-row md:flex-col justify-between items-center md:items-end w-full md:w-auto pt-6 md:pt-0 border-t md:border-none border-white/5">
                       <div className="md:text-right">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Total Bayar</p>
-                        <p className="text-xl font-black text-slate-900">{formatRupiah(b.total_amount)}</p>
+                        <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Total Paid</p>
+                        <p className="text-2xl font-black italic tracking-tighter text-white">{formatRupiah(b.total_amount)}</p>
                       </div>
                       
-                      <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-4 mt-4">
                         {b.payment_status === "unpaid" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/upload-payment/${b.booking_code}`);
                             }}
-                            className="bg-emerald-600 text-white px-5 py-2 rounded-xl text-[11px] font-bold uppercase hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+                            className="bg-white text-black px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-[#ccff00] transition-all shadow-xl active:scale-95"
                           >
-                            Bayar Sekarang
+                            Upload Proof
                           </button>
                         )}
-                        <div className="hidden md:flex w-10 h-10 rounded-full border border-slate-100 items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                          <ChevronRight size={18} />
+                        <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center text-gray-700 group-hover:bg-[#ccff00] group-hover:text-black transition-all">
+                          <ChevronRight size={20} />
                         </div>
                       </div>
                     </div>
@@ -139,12 +148,12 @@ const MyBookings = () => {
                 </motion.div>
               ))
             ) : (
-              <div className="py-24 flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
-                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-4">
-                  <Inbox size={40} />
+              <div className="py-32 flex flex-col items-center justify-center bg-[#0a0a0a] rounded-[4rem] border border-dashed border-white/10">
+                <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center text-gray-800 mb-6">
+                  <Inbox size={48} />
                 </div>
-                <h3 className="text-slate-900 font-bold">Belum ada pesanan</h3>
-                <p className="text-sm text-slate-400">Ayo mulai olahraga dan booking lapangan pertama Anda!</p>
+                <h3 className="text-white font-black italic uppercase tracking-widest">No Records Found</h3>
+                <p className="text-[10px] text-gray-600 uppercase font-black tracking-widest mt-2">Time to hit the court and make your first move!</p>
               </div>
             )}
           </AnimatePresence>
@@ -157,15 +166,15 @@ const MyBookings = () => {
 // --- STATUS PILL ---
 const StatusPill = ({ status }) => {
   const styles = {
-    unpaid: "bg-orange-50 text-orange-600",
-    pending: "bg-blue-50 text-blue-600",
-    paid: "bg-emerald-50 text-emerald-600",
-    expired: "bg-slate-100 text-slate-400",
-    rejected: "bg-rose-50 text-rose-600",
+    unpaid: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+    pending: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    paid: "bg-[#ccff00]/10 text-[#ccff00] border-[#ccff00]/20",
+    expired: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+    rejected: "bg-red-500/10 text-red-500 border-red-500/20",
   };
 
   return (
-    <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${styles[status] || styles.expired}`}>
+    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${styles[status] || styles.expired}`}>
       {status}
     </span>
   );
