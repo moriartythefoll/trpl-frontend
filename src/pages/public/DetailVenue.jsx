@@ -4,40 +4,45 @@ import { motion } from "framer-motion";
 import Navbar from "../../components/public/Navbar";
 import { FaMapMarkerAlt, FaRegClock, FaStar, FaFutbol } from "react-icons/fa";
 import { getVenueById } from "../../services/user/venue.service"; 
-// Nanti buat service ini untuk ambil jadwal
-// import { getFieldSchedules } from "../../services/user/field.service"; 
+import { getFieldSchedules } from "../../services/user/field.service";
+import userBookingService from "../../services/user/booking.service";
 
 const DetailVenue = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [venue, setVenue] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // State untuk Flow Booking
+
+  // Booking flow
   const [selectedField, setSelectedField] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [availableSchedules, setAvailableSchedules] = useState([]);
   const [selectedSlots, setSelectedSlots] = useState([]);
 
+  // Fetch venue detail
   useEffect(() => {
     getVenueById(id)
       .then((data) => {
         setVenue(data);
-        // Set lapangan pertama sebagai default jika ada
-        if (data.fields && data.fields.length > 0) {
-          setSelectedField(data.fields[0]);
-        }
+        if (data.fields && data.fields.length > 0) setSelectedField(data.fields[0]);
       })
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Efek untuk ambil jadwal saat tanggal atau lapangan berubah
+  // Fetch schedules when field/date changes
   useEffect(() => {
-    if (selectedField) {
-      // Di sini nanti panggil API: /explore/fields/{id}/schedules?date=...
-      // Untuk sementara kita pakai mock dulu tapi siapkan strukturnya
-      console.log("Fetching schedules for field:", selectedField.id, "on", selectedDate);
-    }
+    const fetchSchedules = async () => {
+      if (!selectedField) return;
+      try {
+        const schedules = await getFieldSchedules(selectedField.id, selectedDate);
+        setAvailableSchedules(schedules);
+        setSelectedSlots([]); // reset selection
+      } catch (err) {
+        console.error("Error fetching schedules:", err);
+        setAvailableSchedules([]);
+      }
+    };
+    fetchSchedules();
   }, [selectedField, selectedDate]);
 
   const toggleSlot = (slot) => {
@@ -45,6 +50,28 @@ const DetailVenue = () => {
       setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
     } else {
       setSelectedSlots([...selectedSlots, slot.id]);
+    }
+  };
+
+  // ==================================================
+  // HANDLE CONFIRM BOOKING
+  // ==================================================
+  const handleConfirmBooking = async () => {
+    if (!selectedField || selectedSlots.length === 0) return;
+
+    try {
+      const payload = {
+        schedule_ids: selectedSlots, // array dari slot id
+      };
+
+      const res = await userBookingService.createBooking(payload);
+      console.log("Booking berhasil:", res);
+
+      // Redirect ke halaman detail booking atau sukses
+      navigate(`/user/booking/${res.data.id}`);
+    } catch (err) {
+      console.error("Booking gagal:", err);
+      alert(err.response?.data?.message || "Booking gagal, coba lagi.");
     }
   };
 
@@ -127,20 +154,24 @@ const DetailVenue = () => {
             </div>
 
             <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
-              {/* Ini nanti mapping dari state availableSchedules */}
-              {["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "19:00"].map((time, idx) => {
-                const isSelected = selectedSlots.includes(idx); // Sementara pakai index
+              {availableSchedules.map((slot) => {
+                const isSelected = selectedSlots.includes(slot.id);
+                let bgClass = "bg-[#111] border-white/5 text-gray-400 hover:border-cyan-500/50";
+                if (isSelected) bgClass = "bg-cyan-500 border-cyan-400 text-black shadow-[0_0_30px_rgba(6,182,212,0.4)] scale-95";
+                else if (slot.status === "booked") bgClass = "bg-red-800 border-red-600 text-gray-300 cursor-not-allowed";
+                else if (slot.status === "locked") bgClass = "bg-yellow-800 border-yellow-600 text-gray-300 cursor-not-allowed";
+                else if (slot.status === "maintenance") bgClass = "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed";
+
                 return (
                   <button
-                    key={time}
-                    onClick={() => toggleSlot({id: idx})}
-                    className={`p-5 rounded-2xl font-black transition-all border-2 flex flex-col items-center gap-2
-                      ${isSelected ? "bg-cyan-500 border-cyan-400 text-black shadow-[0_0_30px_rgba(6,182,212,0.4)] scale-95" : "bg-[#111] border-white/5 text-gray-400 hover:border-cyan-500/50"}`}
+                    key={slot.id}
+                    onClick={() => slot.status === "available" && toggleSlot(slot)}
+                    className={`p-5 rounded-2xl font-black transition-all border-2 flex flex-col items-center gap-2 ${bgClass}`}
                   >
                     <FaRegClock size={18} />
-                    <span className="text-sm">{time}</span>
+                    <span className="text-sm">{slot.start_time} - {slot.end_time}</span>
                   </button>
-                )
+                );
               })}
             </div>
           </section>
@@ -177,7 +208,7 @@ const DetailVenue = () => {
 
             <button 
               disabled={selectedSlots.length === 0}
-              onClick={() => navigate('/checkout')}
+              onClick={handleConfirmBooking}  // <- pakai function handleConfirmBooking
               className="w-full py-6 bg-cyan-500 text-black font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-white transition-all disabled:bg-gray-800 disabled:text-gray-600 shadow-[0_10px_30px_rgba(6,182,212,0.3)] text-xs italic"
             >
               Confirm Booking

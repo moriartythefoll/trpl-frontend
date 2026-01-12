@@ -2,22 +2,24 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "../../services/axios";
-import { createBooking } from "../../services/user/booking.service";
+// IMPORT FIXED: Pastikan path benar dan menggunakan named import {}
+import { createBooking } from "../../services/user/booking.service"; 
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
-import { LucideCalendar, LucideInfo, LucideCheckCircle } from "lucide-react";
+import { LucideCalendar, LucideInfo, Clock, MapPin } from "lucide-react";
 
 export default function FieldDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore(); // Cek apakah sudah login
+  const { user } = useAuthStore();
   const [selectedSlots, setSelectedSlots] = useState([]);
 
-  // Fetch Data Lapangan & Jadwal
+  // Fetch Data Lapangan
   const { data: field, isLoading } = useQuery({
     queryKey: ["field", id],
     queryFn: async () => {
-      const res = await api.get(`/explore/venues/${id}`); // Endpoint publik
+      // Gunakan endpoint yang sesuai dengan API.php (explore/venues/{id})
+      const res = await api.get(`/explore/venues/${id}`);
       return res.data.data;
     },
   });
@@ -25,10 +27,14 @@ export default function FieldDetails() {
   const checkoutMutation = useMutation({
     mutationFn: createBooking,
     onSuccess: () => {
-      toast.success("Booking berhasil! Silakan cek riwayat.");
-      navigate("/user/bookings");
+      toast.success("Booking Berhasil! Mengalihkan ke riwayat...");
+      // Arahkan ke halaman riwayat booking user
+      setTimeout(() => navigate("/user/bookings"), 1500);
     },
-    onError: (err) => toast.error(err.response?.data?.message || "Gagal booking"),
+    onError: (err) => {
+      const msg = err.response?.data?.message || "Gagal melakukan booking";
+      toast.error(msg);
+    },
   });
 
   const handleToggleSlot = (slotId) => {
@@ -39,84 +45,112 @@ export default function FieldDetails() {
 
   const handleBooking = () => {
     if (!user) {
-      toast.error("Silakan login terlebih dahulu!");
+      toast.error("Login diperlukan untuk booking.");
       return navigate("/login");
     }
-    if (selectedSlots.length === 0) return toast.error("Pilih jam dulu!");
+    if (selectedSlots.length === 0) return toast.error("Pilih minimal 1 jadwal!");
+    
+    // Kirim payload sesuai kebutuhan backend: { schedule_ids: [1, 2, 3] }
     checkoutMutation.mutate({ schedule_ids: selectedSlots });
   };
 
-  if (isLoading) return <div className="p-10 text-center font-bold">Memuat detail lapangan...</div>;
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+    </div>
+  );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-      {/* Kiri: Info Lapangan */}
-      <div className="md:col-span-2 space-y-6">
-        <div className="bg-white p-6 rounded-3xl shadow-sm border">
-          <h1 className="text-3xl font-black text-gray-900">{field?.name}</h1>
-          <p className="text-gray-500 mt-2">{field?.description || "Lapangan olahraga berkualitas tinggi."}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-sm border">
-          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <LucideCalendar className="text-indigo-600" /> Pilih Jam Tersedia
-          </h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {field?.schedules?.map((slot) => {
-              const isBooked = slot.status !== "available";
-              const isSelected = selectedSlots.includes(slot.id);
-              
-              return (
-                <button
-                  key={slot.id}
-                  disabled={isBooked}
-                  onClick={() => handleToggleSlot(slot.id)}
-                  className={`p-3 rounded-xl text-sm font-bold transition-all border-2 
-                    ${isBooked ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed" : 
-                    isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : 
-                    "bg-white border-gray-100 text-gray-700 hover:border-indigo-200"}`}
-                >
-                  {new Date(slot.start_time).getHours()}:00
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Kanan: Ringkasan Booking */}
-      <div className="md:col-span-1">
-        <div className="bg-white p-6 rounded-3xl shadow-xl border sticky top-6">
-          <h3 className="font-bold text-gray-900 mb-4">Ringkasan Sewa</h3>
-          <div className="space-y-3 mb-6">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Harga per jam</span>
-              <span className="font-bold">Rp {field?.price_per_hour?.toLocaleString()}</span>
+    <div className="max-w-6xl mx-auto p-6 lg:py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* KIRI: INFO & JADWAL */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-widest mb-4">
+              <MapPin size={14} /> Arena Details
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Total Jam</span>
-              <span className="font-bold">{selectedSlots.length} Jam</span>
-            </div>
-            <div className="pt-3 border-t flex justify-between">
-              <span className="font-black text-gray-900">Total Bayar</span>
-              <span className="font-black text-indigo-600 text-lg">
-                Rp {(selectedSlots.length * (field?.price_per_hour || 0)).toLocaleString()}
-              </span>
-            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">{field?.name}</h1>
+            <p className="text-slate-500 mt-4 leading-relaxed">
+              {field?.description || "Nikmati fasilitas olahraga terbaik dengan standar internasional dan kenyamanan maksimal."}
+            </p>
           </div>
 
-          <button
-            onClick={handleBooking}
-            disabled={checkoutMutation.isPending}
-            className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 disabled:bg-gray-300"
-          >
-            {checkoutMutation.isPending ? "MEMPROSES..." : "BOOKING SEKARANG"}
-          </button>
-          
-          <p className="text-[10px] text-gray-400 mt-4 text-center flex items-center justify-center gap-1">
-            <LucideInfo size={12} /> Pembayaran dilakukan secara manual setelah konfirmasi.
-          </p>
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <h3 className="font-black text-slate-900 mb-6 flex items-center gap-3 uppercase text-sm tracking-widest">
+              <LucideCalendar className="text-indigo-600" size={20} /> Tersedia Hari Ini
+            </h3>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {field?.schedules?.length > 0 ? (
+                field.schedules.map((slot) => {
+                  const isBooked = slot.status !== "available";
+                  const isSelected = selectedSlots.includes(slot.id);
+                  const startTime = new Date(slot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  
+                  return (
+                    <button
+                      key={slot.id}
+                      disabled={isBooked}
+                      onClick={() => handleToggleSlot(slot.id)}
+                      className={`relative p-4 rounded-2xl text-xs font-black transition-all border-2 flex flex-col items-center gap-1
+                        ${isBooked ? "bg-slate-50 border-slate-50 text-slate-300 cursor-not-allowed opacity-60" : 
+                        isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-200 -translate-y-1" : 
+                        "bg-white border-slate-100 text-slate-600 hover:border-indigo-300 hover:bg-indigo-50/30"}`}
+                    >
+                      <Clock size={14} className={isSelected ? "text-white" : "text-indigo-400"} />
+                      {startTime}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="col-span-full py-10 text-center text-slate-400 font-bold italic">
+                  Belum ada jadwal yang di-generate untuk hari ini.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* KANAN: RINGKASAN */}
+        <div className="lg:col-span-1">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 sticky top-10">
+            <h3 className="font-black text-slate-900 mb-6 uppercase text-xs tracking-[0.2em]">Booking Summary</h3>
+            
+            <div className="space-y-4 mb-8">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 text-xs font-bold uppercase">Rate / Hour</span>
+                <span className="font-black text-slate-800">Rp {field?.price_per_hour?.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 text-xs font-bold uppercase">Duration</span>
+                <span className="font-black text-slate-800">{selectedSlots.length} Hours</span>
+              </div>
+              <div className="pt-4 border-t border-dashed border-slate-200 flex justify-between items-center">
+                <span className="font-black text-slate-900 uppercase text-xs">Total Amount</span>
+                <span className="font-black text-indigo-600 text-2xl tracking-tighter">
+                  Rp {(selectedSlots.length * (field?.price_per_hour || 0)).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleBooking}
+              disabled={checkoutMutation.isPending || selectedSlots.length === 0}
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl active:scale-95 disabled:bg-slate-200 disabled:shadow-none"
+            >
+              {checkoutMutation.isPending ? "Syncing..." : "Confirm Booking"}
+            </button>
+            
+            <div className="mt-6 p-4 bg-slate-50 rounded-2xl flex items-start gap-3">
+              <LucideInfo className="text-indigo-400 shrink-0" size={16} />
+              <p className="text-[10px] text-slate-400 leading-relaxed font-bold">
+                Pemesanan Anda akan diproses secara instan. Pastikan jadwal sudah sesuai sebelum konfirmasi.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -1,51 +1,44 @@
 import api from "../axios";
 
 /**
- * Mengambil semua daftar booking (Admin)
- * Saya ubah namanya menjadi getBookings agar konsisten dengan Resource di Laravel
+ * Mengambil semua daftar booking untuk Admin
+ * GET /api/admin/bookings
  */
 export const getBookings = async () => {
   try {
     const res = await api.get("/admin/bookings");
-    // Pastikan mengembalikan array, jika data null/undefined return array kosong
-    return res.data?.data || [];
+    // Biasanya Laravel membungkus dalam { success: true, data: [...] }
+    return res.data.data || res.data;
   } catch (err) {
-    console.error("Error fetching bookings:", err);
+    console.error("Error fetching admin bookings:", err);
     throw err;
   }
 };
 
 /**
- * Konfirmasi pembayaran booking
- * Method: POST
+ * Konfirmasi Pembayaran Lunas menggunakan BOOKING_CODE
+ * POST /api/admin/bookings/{booking_code}/confirm
  */
-export const confirmBooking = async (id) => {
+export const confirmBooking = async (bookingCode) => {
   try {
-    const res = await api.post(`/admin/bookings/${id}/confirm`);
-    return res.data; 
-  } catch (err) {
-    // Melempar error agar bisa ditangkap oleh mutate onError di UI
-    throw err;
-  }
-};
-
-/**
- * Membatalkan/Menolak booking (Admin)
- */
-export const rejectBooking = async (id) => {
-  try {
-    const res = await api.post(`/admin/bookings/${id}/reject`);
+    const res = await api.post(`/admin/bookings/${bookingCode}/confirm`);
     return res.data;
   } catch (err) {
+    console.error("Confirm Booking Error:", err);
     throw err;
   }
 };
 
-// Gabungkan semua dalam satu object untuk export default
-const bookingService = {
-  getBookings,
-  confirmBooking,
-  rejectBooking,
+/**
+ * Tolak Pembayaran menggunakan BOOKING_CODE
+ * POST /api/admin/bookings/{booking_code}/reject
+ */
+export const rejectBooking = async (bookingCode) => {
+  try {
+    const res = await api.post(`/admin/bookings/${bookingCode}/reject`);
+    return res.data;
+  } catch (err) {
+    console.error("Reject Booking Error:", err);
+    throw err;
+  }
 };
-
-export default bookingService;

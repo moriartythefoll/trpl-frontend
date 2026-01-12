@@ -1,14 +1,36 @@
-import api from "../axios";
+import axios from "../axios"; // pastikan ini axios instance kamu
 
-// Menarik jadwal asli dari database
-export const getFieldSchedules = async (fieldId, date) => {
+/**
+ * Ambil semua field beserta info venue & harga
+ */
+export const getFields = async () => {
   try {
-    const response = await axios.get(`${API_URL}/explore/fields/${fieldId}/schedules`, {
-      params: { date } // Kirim tanggal sebagai query string
-    });
-    return response.data.data; 
+    const res = await axios.get("/explore/fields");
+    return res.data.data; // array field lengkap
   } catch (error) {
-    console.error("Gagal mengambil jadwal:", error);
-    throw error;
+    console.error("Error fetching fields:", error);
+    return [];
   }
 };
+
+/**
+ * Ambil jadwal field tertentu untuk tanggal tertentu
+ */
+export const getFieldSchedules = async (fieldId, date) => {
+  try {
+    const res = await axios.get(`/explore/fields/${fieldId}/schedules`, {
+      params: { date },
+    });
+    return res.data.data; // sesuai response controller
+  } catch (error) {
+    console.error("Error fetching schedules:", error);
+    return [];
+  }
+};
+
+const fieldService = {
+  getFields,
+  getFieldSchedules,
+};
+
+export default fieldService;
