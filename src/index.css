@@ -1,9 +1,10 @@
-@import "tw-animate-css";
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
-@custom-variant dark (&:is(.dark *));
+@import "tw-animate-css";
 
-@theme inline {
+/* ================================
+   THEME TOKENS (Tailwind v4)
+================================ */
+@theme {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -11,6 +12,7 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -29,113 +31,247 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ================================
+   ROOT VARIABLES
+================================ */
 :root {
   --radius: 0.625rem;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
+
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
+
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
+
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
+
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
+
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
+
   --destructive: oklch(0.577 0.245 27.325);
+
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* ================================
+   DARK MODE
+================================ */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
+
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
+
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
+
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
+
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
+
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ================================
+   BASE LAYER
+================================ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
-
-
 }
 
+/* ================================
+   COMPONENTS
+================================ */
 @layer components {
   .input {
     @apply bg-gray-100 px-4 py-3 rounded-lg my-2 outline-none text-sm;
   }
 
   .btn-main {
-    @apply bg-gradient-to-r from-blue-400 to-cyan-400 text-white font-bold py-3 rounded-full uppercase text-sm tracking-wide transition active:scale-95;
+    @apply bg-gradient-to-r from-blue-400 to-cyan-400
+      text-white font-bold py-3 rounded-full uppercase
+      text-sm tracking-wide transition active:scale-95;
   }
 
   .ghost-btn {
-    @apply border-2 border-white text-white px-8 py-2 rounded-full uppercase font-bold text-sm;
+    @apply border-2 border-white text-white px-8 py-2
+      rounded-full uppercase font-bold text-sm;
   }
 }
 
+/* ==============================
+   GRADIENT TEXT
+============================== */
+.text-gradient-cyan {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6, #9333ea);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==============================
+   PERSPECTIVE & CARD TILT
+============================== */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-3d:hover {
+  transform: rotateY(5deg) rotateX(3deg) translateZ(10px);
+  box-shadow: 0 25px 50px rgba(0, 255, 255, 0.3);
+}
+
+/* ==============================
+   SMOOTH TRANSITION ALL
+============================== */
+.transition-all {
+  transition: all 0.3s ease-in-out;
+}
+
+/* ==============================
+   BUTTON HOVER EFFECTS
+============================== */
+.btn-hover-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-hover-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0,255,255,0.25) 0%, transparent 70%);
+  transform: scale(0);
+  transition: transform 0.5s ease;
+  pointer-events: none;
+}
+
+.btn-hover-glow:hover::before {
+  transform: scale(1);
+}
+
+/* ==============================
+   IMAGE OVERLAY ON HOVER
+============================== */
+.image-hover-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-hover-overlay img {
+  transition: transform 0.7s ease, filter 0.5s ease;
+}
+
+.image-hover-overlay:hover img {
+  transform: scale(1.1) rotate(1deg);
+  filter: brightness(1.1);
+}
+
+.image-hover-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.image-hover-overlay:hover::after {
+  opacity: 1;
+}
+
+/* ==============================
+   SERVICES HOVER GLOW
+============================== */
+.service-hover-glow:hover {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+  transform: translateY(-10px);
+}
+
+/* ==============================
+   CUSTOM SCROLLBAR (optional)
+============================== */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #06b6d4;
+  border-radius: 10px;
+}
+
+
+/* Neon hover untuk tombol */
+.btn-hover-glow {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-hover-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, #0ff, #0ff, #0ff, #0ff);
+  opacity: 0;
+  transition: all 0.5s ease;
+  transform: rotate(45deg) scale(0);
+  z-index: -1;
+  filter: blur(15px);
+}
+
+.btn-hover-glow:hover::before {
+  opacity: 0.6;
+  transform: rotate(45deg) scale(1);
+}
+
+/* Optional: tambahin neon text glow */
+.btn-hover-glow:hover {
+  box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
+  color: #0ff;
+}
 
