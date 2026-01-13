@@ -33,22 +33,32 @@ export default function FieldDetails() {
   const venueName = fieldFromDB?.field?.venue?.name || "Elite Sport Center";
   const fieldPrice = fieldFromDB?.price || 0;
 
+  // ==========================================
+  // FIXED MUTATION LOGIC (NO MORE SKIPPING)
+  // ==========================================
   const checkoutMutation = useMutation({
     mutationFn: createBooking,
     onMutate: () => {
-      // Aba-aba: Beritahu user proses sinkronisasi dimulai
       toast.loading("Securing your sessions...", { id: "checkout-status" });
     },
-    onSuccess: () => {
-      // Aba-aba: Berhasil dengan gaya Amazing Custom
+    onSuccess: (response) => {
+      // Ambil booking_code dari response (asumsi struktur: response.data.booking_code)
+      const bookingCode = response?.data?.booking_code;
+
       toast.success("Victory! Booking Secured", { 
         id: "checkout-status",
         duration: 3000 
       });
-      setTimeout(() => navigate("/my-bookings"), 1500);
+
+      // Navigasi ke HALAMAN DETAIL BOOKING, bukan riwayat
+      if (bookingCode) {
+        setTimeout(() => navigate(`/bookings/${bookingCode}`), 1200);
+      } else {
+        // Fallback jika code tidak ditemukan
+        setTimeout(() => navigate("/my-bookings"), 1200);
+      }
     },
     onError: (err) => {
-      // Aba-aba: Gagal
       toast.error(err.response?.data?.message || "Booking failed. Try again.", { id: "checkout-status" });
     }
   });
@@ -56,21 +66,11 @@ export default function FieldDetails() {
   const handleToggleSlot = (slotId) => {
     setSelectedSlots((prev) => {
       const isSelecting = !prev.includes(slotId);
-      
-      // ABA-ABA INSTAN SAAT KLIK JADWAL
       if (isSelecting) {
-        toast.success("Session added", {
-          id: `slot-${slotId}`, // Unik per slot atau pakai ID statis jika gamau numpuk
-          duration: 1000,
-          icon: '⚡',
-        });
+        toast.success("Session added", { id: `slot-${slotId}`, duration: 1000, icon: '⚡' });
         return [...prev, slotId];
       } else {
-        toast("Session removed", {
-          id: `slot-${slotId}`,
-          duration: 1000,
-          icon: '🗑️',
-        });
+        toast("Session removed", { id: `slot-${slotId}`, duration: 1000, icon: '🗑️' });
         return prev.filter((s) => s !== slotId);
       }
     });

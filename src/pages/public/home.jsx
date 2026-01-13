@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../../components/public/Navbar";
+import Footer from "../../components/public/Footer";
 import { getExploreVenues } from "../../services/user/venue.service";
 import { getFields } from "../../services/user/field.service"; 
 import {
@@ -46,7 +47,7 @@ const Home = () => {
       <Navbar />
 
       {/* --- SECTION 1: HERO MAXIMALIST (THE ORIGINAL) --- */}
-      <section className="relative w-full h-screen overflow-hidden bg-black">
+      <section id="hero" className="relative w-full h-screen overflow-hidden bg-black">
         <AnimatePresence mode="wait">
           <motion.div
             key={items[0].id}
@@ -114,7 +115,7 @@ const Home = () => {
       </section>
 
       {/* --- SECTION 2: THE VENUE STACK (GEDUNG) --- */}
-      <section className="py-32 bg-[#063445] relative">
+      <section id="venue" className="py-32 bg-[#063445] relative">
         <div className="container mx-auto px-6 md:px-24 flex flex-col lg:flex-row items-center justify-between gap-20">
           
           <div className="relative w-full max-w-[450px] h-[500px] [perspective:1000px] flex items-center justify-center">
@@ -170,7 +171,7 @@ const Home = () => {
       </section>
 
       {/* --- SECTION 3: TOP FIELDS (DISCOVERY) --- */}
-      <section id="discovery" className="py-32 bg-[#0d0d0d]">
+      <section id="fields" className="py-32 bg-[#0d0d0d]">
         <div className="container mx-auto px-6 md:px-24">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6 text-left">
             <div>
@@ -211,9 +212,30 @@ const Home = () => {
         </div>
       </section>
 
-      <footer className="py-16 border-t border-white/5 bg-black text-center text-gray-600 text-[10px] tracking-[0.4em] uppercase font-bold italic">
-        © 2026 SportCenter. The Ultimate Arena Experience.
-      </footer>
+      
+      {/* --- SECTION: SERVICES (PEMANIS) --- */}
+      <section id="services" className="py-24 bg-[#0a0a0a] border-y border-white/5">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              { title: "Standard Pro", desc: "Fasilitas lapangan standar internasional untuk performa terbaik.", icon: "🏆" },
+              { title: "Instant Access", desc: "Booking dan dapatkan kode akses lapangan secara otomatis.", icon: "⚡" },
+              { title: "Full Amenities", desc: "Kamar mandi bersih, locker room, dan area parkir luas.", icon: "🛡️" },
+            ].map((service, i) => (
+              <div key={i} className="group p-8 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-cyan-500/50 transition-all duration-500">
+                <div className="text-4xl mb-6 group-hover:scale-110 transition-transform duration-500">{service.icon}</div>
+                <h3 className="text-white font-black italic tracking-widest uppercase mb-4">{service.title}</h3>
+                <p className="text-gray-500 text-xs leading-relaxed font-bold uppercase italic tracking-tighter">
+                  {service.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER SECTION */}
+      <Footer />
     </div>
   );
 };

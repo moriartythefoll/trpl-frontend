@@ -14,3 +14,8 @@ export const meRequest = async () => {
   const res = await axios.get("/me")
   return res.data
 }
+
+export const updateProfileRequest = async (payload) => {
+  const res = await axios.put('/profile/update', payload)
+  return res.data
+}

@@ -20,95 +20,86 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
 
-    const loadId = toast.loading(isRegister ? "Mendaftarkan profil baru..." : "Sedang masuk...");
+  const loadId = toast.loading(isRegister ? "Mendaftarkan profil baru..." : "Sedang masuk...");
 
-    try {
-      if (isRegister) {
-        // --- LOGIC REGISTER ---
-        
-        // 1. Validasi Input Dasar
-        if (password !== passwordConfirm) {
-          setLoading(false);
-          return toast.error("Konfirmasi password tidak sesuai!", { id: loadId });
-        }
+  try {
+    if (isRegister) {
+      // --- LOGIC REGISTER ---
+      if (password !== passwordConfirm) {
+        setLoading(false);
+        return toast.error("Konfirmasi password tidak sesuai!", { id: loadId });
+      }
 
-        if (password.length < 8) {
-          setLoading(false);
-          return toast.error("Password minimal 8 karakter!", { id: loadId });
-        }
+      await register({
+        name,
+        email,
+        password,
+        password_confirmation: passwordConfirm,
+      });
 
-        // 2. Kirim ke Service
-        // Pastikan key 'password_confirmation' sesuai dengan BE
-        await register({
-          name: name,
-          email: email,
-          password: password,
-          password_confirmation: passwordConfirm, 
+      toast.success("Akun berhasil dibuat! Silakan login.", { id: loadId });
+      
+      // Reset Form & Redirect ke Login
+      setName(""); setEmail(""); setPassword(""); setPasswordConfirm("");
+      setTimeout(() => navigate("/login"), 1000);
+
+    } else {
+      // --- LOGIC LOGIN (THE CRITICAL PART) ---
+      
+      // 1. Jalankan fungsi login dari Zustand
+      // Kita asumsikan fungsi ini menyimpan token ke localStorage secara internal
+      const userData = await login({ email, password });
+
+      if (userData) {
+        // 2. Beri feedback visual cepat
+        toast.success(`Welcome back, ${userData.name}!`, { 
+          id: loadId,
+          icon: '👋'
         });
 
-        // 3. Sukses
-        toast.success("Akun berhasil dibuat! Silakan login.", { id: loadId });
+        // 3. Logic Redirect Berdasarkan Role
+        // Kita langsung ambil dari variable userData agar tidak menunggu State re-render
+        const { role } = userData;
         
-        // Bersihkan form
-        setName("");
-        setEmail("");
-        setPassword("");
-        setPasswordConfirm("");
+        // Gunakan replace: true agar user tidak bisa "Back" ke halaman login lagi
+        let targetPath = "/";
+        if (role === "admin") targetPath = "/admin/dashboard";
+        else if (role === "owner") targetPath = "/owner/dashboard";
 
-        // Pindah ke halaman login
-        setTimeout(() => {
-          navigate("/login");
-        }, 1000);
-
-      } else {
-        // --- LOGIC LOGIN ---
-        const userData = await login({ email, password });
-
-        if (userData) {
-          toast.success(`Welcome back, ${userData.name}!`, { 
-            id: loadId,
-            icon: '👋'
-          });
-
-          // JEDA KRUSIAL: Memberi waktu Zustand & LocalStorage sinkron
-          setTimeout(() => {
-            const role = userData.role;
-            if (role === "admin") {
-              navigate("/admin/dashboard", { replace: true });
-            } else if (role === "owner") {
-              navigate("/owner/dashboard", { replace: true });
-            } else {
-              navigate("/", { replace: true });
-            }
-          }, 600);
-        }
-      }
-    } catch (err) {
-      // TANGKAP ERROR DARI BE SECARA DETAIL
-      const responseError = err.response?.data;
-      let msg = "Terjadi kesalahan sistem";
-
-      if (err.response?.status === 422) {
-        // Jika error validasi dari Laravel/BE
-        const validationErrors = responseError.errors;
-        msg = Object.values(validationErrors)[0][0]; // Ambil pesan error pertama
-      } else if (responseError?.message) {
-        msg = responseError.message;
-      }
-
-      toast.error(msg, { id: loadId });
-      setError(msg);
-    } finally {
-      // Matikan loading hanya jika gagal atau di mode register
-      // Untuk login sukses, biarkan tetap loading sampai halaman pindah
-      if (isRegister || error) {
-        setLoading(false);
+        // 4. Eksekusi Navigasi
+        // Jika navigasi masih macet, gunakan window.dispatchEvent(new Event("storage")) 
+        // tepat sebelum navigate untuk memancing re-render di Navbar/ProtectedRoutes
+        window.dispatchEvent(new Event("storage")); 
+        
+        navigate(targetPath, { replace: true });
       }
     }
+  } catch (err) {
+    // --- ERROR HANDLING ---
+    const responseError = err.response?.data;
+    let msg = "Terjadi kesalahan sistem";
+
+    if (err.response?.status === 422) {
+      const validationErrors = responseError.errors;
+      msg = Object.values(validationErrors)[0][0]; 
+    } else if (responseError?.message) {
+      msg = responseError.message;
+    }
+
+    toast.error(msg, { id: loadId });
+    setError(msg);
+    setLoading(false); // Matikan loading jika gagal
+  } finally {
+    // Matikan loading hanya jika di mode register, 
+    // Untuk login, biarkan tetap loading (true) sampai halaman benar-benar pindah (unmount)
+    if (isRegister) {
+      setLoading(false);
+    }
+  }
   };
 
   return (
