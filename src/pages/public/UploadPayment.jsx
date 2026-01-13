@@ -1,192 +1,216 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { uploadPayment } from "../../services/user/booking.service";
 import Navbar from "../../components/public/Navbar";
+import userBookingService from "../../services/user/booking.service";
 import toast from "react-hot-toast";
-import { 
-  CloudUpload, X, CheckCircle2, ArrowLeft, 
-  Loader2, Image as ImageIcon, Zap, ShieldCheck 
+import {
+  CloudUpload, X, ArrowLeft, Loader2, ShieldCheck, 
+  Calendar, Clock, MapPin, Zap
 } from "lucide-react";
 
 export default function UploadPayment() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
 
+  const { data: rawData, isLoading, isError } = useQuery({
+    queryKey: ["booking-by-code", code],
+    queryFn: () => userBookingService.getBookingById(code),
+    retry: false
+  });
+
+  const booking = useMemo(() => {
+    if (!rawData) return null;
+    if (Array.isArray(rawData)) return rawData.find((b) => b.booking_code === code) || rawData[0];
+    return rawData.data || rawData;
+  }, [rawData, code]);
+
+  const formatTime = (iso) => iso ? new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":") : "--:--";
+  const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-";
+  const formatIDR = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
+
+  useEffect(() => {
+    if (isError) { 
+      toast.error("Booking tidak ditemukan"); 
+      navigate("/my-bookings"); 
+    }
+    // Jika sudah bayar atau expired, tidak boleh ke halaman ini
+    if (booking && booking.payment_status !== "unpaid") {
+      navigate("/my-bookings");
+    }
+  }, [booking, isError, navigate]);
+
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        return toast.error("FILE TOO LARGE! MAX 2MB", {
-          id: "upload-size-error",
-        });
+    const selected = e.target.files[0];
+    if (selected) {
+      if (selected.size > 2 * 1024 * 1024) {
+        toast.error("File terlalu besar! Maksimal 2MB");
+        return;
       }
-      setSelectedFile(file);
-      setPreview(URL.createObjectURL(file));
-      
-      // ABA-ABA: Feedback saat file masuk
-      toast.success("RECEIPT SCANNED", {
-        icon: '📸',
-        id: "file-selected"
-      });
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
     }
   };
 
+  // --- LOGIC UPLOAD YANG DIPERBAIKI ---
   const uploadMutation = useMutation({
-    mutationFn: (formData) => uploadPayment(code, formData),
+    mutationFn: (formData) => userBookingService.uploadPayment(code, formData),
     onMutate: () => {
-      // ABA-ABA: Loading State Global (Menimpa notif sebelumnya)
-      toast.loading("TRANSMITTING PROOF...", { id: "upload-status" });
+      toast.loading("Uploading your proof...", { id: "upload-status" });
     },
     onSuccess: () => {
-      // ABA-ABA: Berhasil
-      toast.success("TRANSMISSION SUCCESSFUL!", { 
-        id: "upload-status",
-        icon: '🚀' 
-      });
-      
-      // Memberi jeda agar user melihat pesan sukses sebelum pindah
-      setTimeout(() => navigate("/my-bookings"), 1200);
+      toast.success("Payment proof submitted! Waiting for verification.", { id: "upload-status" });
+      setTimeout(() => navigate("/my-bookings"), 1500);
     },
-    onError: (err) => {
-      // ABA-ABA: Gagal
-      toast.error(err.response?.data?.message || "TRANSMISSION FAILED", { 
-        id: "upload-status" 
-      });
+    onError: (error) => {
+      const msg = error.response?.data?.message || "Failed to upload proof";
+      toast.error(msg, { id: "upload-status" });
     }
   });
 
-  const handleSubmit = () => {
-    if (!selectedFile) return toast.error("ATTACH RECEIPT FIRST!");
-    
-    const formData = new FormData();
-    formData.append("payment_proof", selectedFile); 
-    uploadMutation.mutate(formData);
+  const handleConfirm = () => {
+    if (!file) {
+      toast.error("Please select an image first");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("payment_proof", file); // Pastikan key 'payment_proof' sesuai dengan yang diminta Backend
+
+    uploadMutation.mutate(fd);
   };
 
+  if (isLoading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
+      <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Order...</p>
+    </div>
+  );
+
+  if (!booking) return null;
+
   return (
-    <div className="min-h-screen bg-black text-white pb-32 selection:bg-[#ccff00] selection:text-black">
+    <div className="min-h-screen bg-[#F8FAFC] pb-10">
       <Navbar />
-      
-      <div className="container mx-auto px-6 pt-32 max-w-2xl">
-        {/* BACK BUTTON */}
-        <motion.button 
-          whileHover={{ x: -5 }}
-          onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 text-gray-500 hover:text-[#ccff00] font-black text-[10px] uppercase tracking-[0.4em] mb-10 transition-colors"
-        >
-          <ArrowLeft size={16} /> Back to Dashboard
-        </motion.button>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0f0f0f] rounded-[4rem] border border-white/5 p-10 md:p-14 relative overflow-hidden"
-        >
-          {/* DECORATIVE BACKGROUND */}
-          <div className="absolute top-0 right-0 p-20 opacity-[0.02] pointer-events-none">
-            <Zap size={400} strokeWidth={1} />
+      <div className="container mx-auto px-4 pt-28 max-w-5xl">
+        
+        <div className="flex justify-between items-end mb-6">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-indigo-600 transition-all">
+            <ArrowLeft size={14} /> Back
+          </button>
+          <div className="text-right">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Order ID</p>
+            <h2 className="text-xl font-black text-slate-900 italic tracking-tighter">#{booking.booking_code}</h2>
           </div>
+        </div>
 
-          {/* HEADER */}
-          <div className="text-center mb-12 space-y-3 relative z-10">
-            <div className="flex justify-center mb-4">
-               <div className="bg-[#ccff00]/10 p-4 rounded-[2rem] text-[#ccff00]">
-                  <CreditCardIcon />
-               </div>
-            </div>
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter">Secure <span className="text-[#ccff00]">Payment</span></h1>
-            <p className="text-gray-500 font-black text-[10px] uppercase tracking-[0.3em]">Confirmation for <span className="text-white">#{code}</span></p>
-          </div>
-
-          <div className="space-y-8 relative z-10">
-            {/* UPLOAD BOX */}
-            <AnimatePresence mode="wait">
-              {!preview ? (
-                <motion.label 
-                  key="upload"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed border-white/5 rounded-[3.5rem] bg-[#151515] hover:border-[#ccff00]/50 hover:bg-[#1a1a1a] transition-all cursor-pointer group"
-                >
-                  <div className="flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center text-gray-500 group-hover:text-[#ccff00] group-hover:scale-110 shadow-sm mb-6 transition-all">
-                      <CloudUpload size={40} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          
+          {/* LEFT SIDE: SUMMARY */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-7 space-y-4"
+          >
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm h-full">
+              <h3 className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-6 italic">Reservation Details</h3>
+              
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {booking.items?.map((item, idx) => (
+                  <div key={idx} className="bg-slate-50 rounded-3xl p-5 border border-slate-100 group hover:border-indigo-200 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-black text-slate-800 text-sm uppercase italic leading-none">{item.schedule?.field?.venue?.name}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{item.schedule?.field?.name}</p>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl shadow-sm"><MapPin size={14} className="text-indigo-500" /></div>
                     </div>
-                    <p className="text-[11px] text-white font-black uppercase tracking-widest">Select Transfer Receipt</p>
-                    <p className="text-[9px] text-gray-600 mt-2 uppercase tracking-[0.3em] font-black italic">PNG, JPG (MAX 2MB)</p>
+                    
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-600">
+                        <Calendar size={12} className="text-indigo-400"/> {formatDate(item.schedule?.start_time)}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-600">
+                        <Clock size={12} className="text-indigo-400"/> {formatTime(item.schedule?.start_time)} - {formatTime(item.schedule?.end_time)}
+                      </div>
+                    </div>
                   </div>
-                  <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
-                </motion.label>
-              ) : (
-                <motion.div 
-                  key="preview"
-                  initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                  className="relative"
-                >
-                  <button 
-                    onClick={() => { 
-                      setSelectedFile(null); 
-                      setPreview(null);
-                      toast("RECEIPT REMOVED", { icon: '🗑️', id: 'remove-img' });
-                    }}
-                    className="absolute -top-4 -right-4 z-10 w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:bg-red-500 hover:text-white transition-all"
-                  >
-                    <X size={24} />
-                  </button>
-                  <div className="rounded-[3.5rem] overflow-hidden border-4 border-[#ccff00]/20 shadow-2xl">
-                    <img src={preview} alt="Preview" className="w-full h-96 object-cover" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* INFO PANEL */}
-            <div className="bg-[#ccff00]/5 p-6 rounded-[2.5rem] border border-[#ccff00]/10 flex gap-5 items-center">
-              <div className="w-10 h-10 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] shrink-0">
-                 <ShieldCheck size={20} />
+                ))}
               </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed font-black uppercase tracking-tight">
-                Pastikan nama pengirim & nominal sesuai. Admin akan memvalidasi dalam 1x24 jam untuk mengaktifkan kode akses arena.
-              </p>
+
+              <div className="mt-8 pt-6 border-t border-dashed border-slate-200 flex justify-between items-center">
+                <span className="text-[11px] font-black uppercase text-slate-400">Grand Total</span>
+                <span className="text-2xl font-black text-indigo-600 italic tracking-tighter">{formatIDR(booking.total_amount)}</span>
+              </div>
             </div>
+          </motion.div>
 
-            {/* SUBMIT BUTTON */}
-            <motion.button
-              whileHover={selectedFile ? { scale: 1.02, backgroundColor: '#ffffff', color: '#000000' } : {}}
-              whileTap={selectedFile ? { scale: 0.98 } : {}}
-              onClick={handleSubmit}
-              disabled={uploadMutation.isPending || !selectedFile}
-              className={`w-full py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic text-xs transition-all flex items-center justify-center gap-4 shadow-2xl
-                ${selectedFile 
-                  ? "bg-[#ccff00] text-black" 
-                  : "bg-white/5 text-gray-800 cursor-not-allowed border border-white/5"}`}
-            >
-              {uploadMutation.isPending ? (
-                <Loader2 className="animate-spin" size={20} />
-              ) : (
-                <Zap size={18} fill="currentColor" />
-              )}
-              {uploadMutation.isPending ? "TRANSMITTING DATA..." : "SEND PROOF NOW"}
-            </motion.button>
-          </div>
-        </motion.div>
+          {/* RIGHT SIDE: UPLOAD AREA */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-5"
+          >
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-xl h-full flex flex-col justify-between border border-slate-800">
+              <div className="mb-6 text-center lg:text-left">
+                <h3 className="text-white font-black text-lg italic uppercase tracking-tight">Proof of Payment</h3>
+                <p className="text-slate-500 text-[10px] font-bold mt-1 uppercase">Upload your transfer receipt below</p>
+              </div>
 
-        {/* FOOTER NOTE */}
-        <p className="text-center mt-10 text-[9px] font-black text-gray-700 uppercase tracking-[0.5em]">
-          End-to-End Encrypted Verification
-        </p>
+              <div className="space-y-6">
+                <AnimatePresence mode="wait">
+                  {!preview ? (
+                    <motion.label 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="flex flex-col items-center justify-center h-52 border-2 border-dashed border-slate-700 rounded-[2rem] cursor-pointer hover:bg-slate-800/50 hover:border-indigo-500 transition-all group"
+                    >
+                      <div className="p-4 bg-slate-800 rounded-2xl group-hover:scale-110 transition-transform">
+                        <CloudUpload className="text-indigo-500" size={28} />
+                      </div>
+                      <span className="mt-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">Select Image</span>
+                      <input type="file" hidden accept="image/*" onChange={handleFileChange} />
+                    </motion.label>
+                  ) : (
+                    <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="relative h-52">
+                      <button 
+                        onClick={() => {setFile(null); setPreview(null)}} 
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg z-10 transition-transform hover:scale-110"
+                      >
+                        <X size={14} />
+                      </button>
+                      <img src={preview} alt="preview" className="w-full h-full object-cover rounded-[2rem] border-2 border-slate-700" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button
+                  onClick={handleConfirm}
+                  disabled={!file || uploadMutation.isPending}
+                  className={`w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                    file && !uploadMutation.isPending 
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-900/20 active:scale-[0.98]' 
+                      : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  {uploadMutation.isPending ? (
+                    <Loader2 className="animate-spin" size={14}/>
+                  ) : (
+                    <Zap size={14}/>
+                  )}
+                  {uploadMutation.isPending ? "SENDING..." : "CONFIRM NOW"}
+                </button>
+                
+                <div className="flex items-center justify-center gap-2 opacity-30">
+                  <ShieldCheck size={12} className="text-white" />
+                  <span className="text-[8px] font-black text-white uppercase tracking-tighter text-center">Encrypted Transaction Gate</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+        </div>
       </div>
     </div>
   );
 }
-
-// Icon Helper
-const CreditCardIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="5" width="20" height="14" rx="2" />
-    <line x1="2" y1="10" x2="22" y2="10" />
-  </svg>
-);

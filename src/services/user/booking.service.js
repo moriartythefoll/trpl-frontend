@@ -28,6 +28,17 @@ export const getMyBookings = async () => {
   }
 };
 
+export const getBookingDetail = async (bookingCode) => {
+  try {
+    const res = await api.get(`/user/bookings/${bookingCode}`);
+    return res.data.data || res.data;
+  } catch (err) {
+    console.error("Error fetching booking detail:", err);
+    throw err;
+  }
+};
+
+
 /**
  * Ambil detail booking menggunakan BOOKING_CODE (Bukan ID)
  * GET /api/user/bookings/{booking_code}
@@ -74,6 +85,7 @@ export const uploadPayment = async (bookingCode, formData) => {
 const userBookingService = {
   createBooking,
   getMyBookings,
+  getBookingDetail,
   getBookingById,
   getAvailableSchedules,
   uploadPayment

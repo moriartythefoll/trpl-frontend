@@ -2,13 +2,14 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 
 /* ================= PUBLIC ================= */
-import Home from "@/pages/public/Home";
+import Home from "@/pages/public/home";
 import AuthPage from "@/pages/public/Auth";
 import FieldDetails from "@/pages/public/FieldDetails";
 import DetailVenue from "@/pages/public/DetailVenue";
 import DetailBooking from "@/pages/public/DetailBooking";
 import MyBookings from "@/pages/public/MyBooking";
 import UploadPayment from "@/pages/public/UploadPayment";
+import ProfilePage from "@/pages/public/ProfilePage";
 
 /* ================= LAYOUTS ================= */
 import AdminLayout from "@/layouts/AdminLayout";
@@ -34,6 +35,7 @@ export default function AppRoutes() {
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/venues/:id" element={<DetailVenue />} />
       <Route path="/field-details/:id" element={<FieldDetails />} />
+      <Route path="/profile" element={<ProfilePage />} />
 
       {/* My Bookings & Booking Detail (hanya untuk user login) */}
       <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
