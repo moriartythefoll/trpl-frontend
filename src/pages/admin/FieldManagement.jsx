@@ -88,20 +88,14 @@ export default function AdminFieldPage() {
   // --- HELPERS ---
   const getImageUri = (img) => {
     if (!img) return null;
-    if (img.startsWith("http")) return img;
-    return `${import.meta.env.VITE_STORAGE_URL}/${img}`;
+    if (typeof img === "string" && img.startsWith("http")) {
+      return img;
+    }
+    return `${import.meta.env.VITE_API_BASE_URL}/storage/${img}`;
   };
 
   const handleFormSubmit = (data) => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      if (key === 'image' && data[key] instanceof File) {
-        formData.append('image', data[key]);
-      } else if (key !== 'image') {
-        formData.append(key, data[key]);
-      }
-    });
-    saveMutation.mutate(formData);
+    saveMutation.mutate(data);
   };
 
   // --- FILTER & SORT ENGINE ---
@@ -135,10 +129,10 @@ export default function AdminFieldPage() {
     setEditing(field);
     if (field) {
       reset({ 
-        venue_id: field.venue?.id, 
+        venue_id: field.venue?.id || field.venue_id, 
         name: field.name, 
         type: field.type, 
-        price: field.price, 
+        price: Number(field.price), 
         status: field.status 
       });
       setPreview(getImageUri(field.image));

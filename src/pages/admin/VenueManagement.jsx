@@ -111,23 +111,19 @@ export default function AdminVenuePage() {
   };
 
   // --- Handlers ---
-  const onSubmit = (formData) => {
-    // Karena ada file, kita harus gunakan FormData
-    const dataToSend = new FormData();
-    dataToSend.append("name", formData.name);
-    dataToSend.append("address", formData.address);
-    dataToSend.append("description", formData.description);
-    dataToSend.append("open_time", formData.open_time);
-    dataToSend.append("close_time", formData.close_time);
-    
-    if (formData.image?.[0]) {
-      dataToSend.append("image", formData.image[0]);
-    }
+  const onSubmit = (data) => {
+    // Debug: Pastikan data dari form tertangkap (Opsional)
+    console.log("Data siap dikirim ke service:", data);
 
     if (editingVenue) {
-      updateMutation.mutate({ id: editingVenue.id, payload: dataToSend });
+      // Kirim objek mentah 'data', service akan mengurus FormData & _method: PUT
+      updateMutation.mutate({ 
+        id: editingVenue.id, 
+        payload: data 
+      });
     } else {
-      createMutation.mutate(dataToSend);
+      // Kirim objek mentah 'data' untuk Create
+      createMutation.mutate(data);
     }
   };
 

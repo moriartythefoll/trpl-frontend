@@ -41,22 +41,33 @@ export const getVenuesForSelect = async () => {
  * CREATE FIELD (MULTIPART)
  * ==========================================================
  */
-export const createField = async (data) => {
+export const createField = async (payload) => {
   const formData = new FormData();
+  
+  formData.append("venue_id", payload.venue_id);
+  formData.append("name", payload.name);
+  formData.append("type", payload.type);
+  formData.append("price_per_hour", payload.price);
+  formData.append("is_active", payload.status === "active" ? 1 : 0);
 
-  formData.append("venue_id", Number(data.venue_id));
-  formData.append("name", data.name);
-  formData.append("type", data.type);
-  formData.append("price_per_hour", Number(data.price));
-  formData.append("is_active", data.status === "active" ? 1 : 0);
-
-  if (data.image instanceof File) {
-    formData.append("image", data.image);
+  // --- FIX LOGIC DI SINI ---
+  if (payload.image instanceof File) {
+    // Kalau kamu pakai setValue("image", f), masuk ke sini
+    formData.append("image", payload.image);
+    console.log("File gambar ditemukan (File Object):", payload.image.name);
+  } else if (payload.image && payload.image[0]) {
+    // Kalau kamu pakai register standard, masuk ke sini
+    formData.append("image", payload.image[0]);
+    console.log("File gambar ditemukan (FileList):", payload.image[0].name);
+  } else {
+    console.log("Tidak ada file gambar yang dikirim ke backend");
   }
 
-  const res = await api.post("/admin/fields", formData);
-
-  return normalizeField(res.data.data);
+  const res = await api.post("/admin/fields", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  
+  return res.data;
 };
 
 /**
@@ -73,8 +84,8 @@ export const updateField = async (id, data) => {
   formData.append("price_per_hour", Number(data.price));
   formData.append("is_active", data.status === "active" ? 1 : 0);
 
-  if (data.image instanceof File) {
-    formData.append("image", data.image);
+  if (data.image?.[0]) {
+    formData.append("image", data.image[0]);
   }
 
   const res = await api.post(
