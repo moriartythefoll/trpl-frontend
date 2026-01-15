@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
+import { useAuthStore } from "../store/auth.store";
 
 /* ================= PUBLIC ================= */
 import Home from "@/pages/public/home";
@@ -35,10 +36,10 @@ export default function AppRoutes() {
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/venues/:id" element={<DetailVenue />} />
       <Route path="/field-details/:id" element={<FieldDetails />} />
-      <Route path="/profile" element={<ProfilePage />} />
 
       {/* My Bookings & Booking Detail (hanya untuk user login) */}
       <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/my-bookings" element={<MyBookings />} />
         <Route path="/bookings/:code" element={<DetailBooking />} />
         <Route path="/upload-payment/:code" element={<UploadPayment />} />
@@ -68,3 +69,20 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+
+const RootRedirect = () => {
+  const { token, user, isInitialized } = useAuthStore();
+
+  // Tunggu sampai Zustand selesai inisialisasi storage
+  if (!isInitialized) return null; 
+
+  // Jika tidak ada token, tampilkan halaman Home Public
+  if (!token) return <Home />;
+
+  // Jika login, arahkan sesuai role
+  if (user?.role === "admin") return <Navigate to="/admin/dashboard" replace />;
+  if (user?.role === "owner") return <Navigate to="/owner/dashboard" replace />;
+  
+  // Jika user biasa, tampilkan Home
+  return <Home />;
+};
