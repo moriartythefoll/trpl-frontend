@@ -3,88 +3,48 @@ import AppRoutes from "./routes/AppRoutes";
 import { useEffect } from "react";
 import { useAuthStore } from "./store/auth.store";
 import { Toaster } from "react-hot-toast";
+import { Zap } from "lucide-react";
 
 export default function App() {
-  // Ambil state dari store
   const fetchMe = useAuthStore((state) => state.fetchMe);
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
-  
-  // GUNAKAN INI sebagai gating utama, bukan isLoading
   const isInitialized = useAuthStore((state) => state.isInitialized);
 
   useEffect(() => {
-    // Sinkronisasi data user jika ada token di storage tapi user belum ada di state
     if (token && !user) {
       fetchMe();
     }
   }, [token, user, fetchMe]);
 
-  /**
-   * CRITICAL CHECK:
-   * Kita hanya menampilkan Loading Screen Full Page saat aplikasi 
-   * sedang pertama kali membaca LocalStorage (Hydration).
-   * Begitu sudah 'Initialized', aplikasi tidak boleh hilang (unmount) 
-   * meskipun ada proses API lainnya.
-   */
+  // --- LOADING TETAP SAMA (TIDAK DIUBAH) ---
   if (!isInitialized) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0a0a0a]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ccff00] mb-4"></div>
-        <p className="text-white font-black uppercase italic tracking-[0.3em] text-[10px] animate-pulse">
-          Syncing Performance...
-        </p>
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050505] overflow-hidden">
+        <div className="absolute w-[500px] h-[500px] bg-[#ccff00]/5 rounded-full blur-[120px] -z-10" />
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-24 h-24 border-2 border-dashed border-[#ccff00]/20 rounded-full animate-[spin_10s_linear_infinite]" />
+          <div className="h-16 w-16 rounded-full border-t-2 border-l-2 border-[#ccff00] animate-spin shadow-[0_0_20px_rgba(204,255,0,0.2)]" />
+          <Zap className="absolute text-[#ccff00] animate-pulse" size={20} />
+        </div>
+        <div className="mt-12 text-center space-y-2">
+          <h2 className="text-white font-black uppercase italic tracking-[0.8em] text-[12px] ml-[0.8em]">
+            SENSEI<span className="text-[#ccff00]">_CORE</span>
+          </h2>
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-[1px] w-8 bg-zinc-800" />
+            <p className="text-zinc-500 font-bold uppercase text-[7px] tracking-[0.4em]">Initializing_Protocols</p>
+            <div className="h-[1px] w-8 bg-zinc-800" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <BrowserRouter>
-      {/* KONFIGURASI TOASTER SENSEI (SUDAH MANTAP) */}
-      <Toaster 
-        position="top-center"
-        reverseOrder={false}
-        gutter={8}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#111111',
-            color: '#ffffff',
-            borderRadius: '50px', 
-            border: '1px solid rgba(255,255,255,0.1)',
-            padding: '14px 28px',
-            fontSize: '11px',
-            fontWeight: '900',
-            textTransform: 'uppercase',
-            letterSpacing: '0.15em',
-            fontStyle: 'italic',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#ccff00',
-              secondary: '#000',
-            },
-            style: {
-              border: '1px solid #ccff00',
-            }
-          },
-          error: {
-            iconTheme: {
-              primary: '#ff3333',
-              secondary: '#fff',
-            },
-            style: {
-              border: '1px solid #ff3333',
-            }
-          }
-        }}
-      />
-
-      {/* DENGAN RENDER AppRoutes DI SINI, 
-          Navigation dari Login akan langsung terbaca karena 
-          BrowserRouter sudah stand-by.
-      */}
+      {/* TOASTER DIBUAT CLEAN (Agar tidak dobel gaya) */}
+      <Toaster position="top-right" /> 
       <AppRoutes />
     </BrowserRouter>
   );
