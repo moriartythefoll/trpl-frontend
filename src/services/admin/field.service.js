@@ -3,23 +3,22 @@ import api from "../axios";
 /**
  * ==========================================================
  * NORMALIZER (FRONTEND CONTRACT)
+ * Menyeragamkan bentuk data dari backend agar aman di frontend
  * ==========================================================
  */
 const normalizeField = (f) => ({
   id: f.id,
   name: f.name,
   type: f.type,
-  price: Number(f.price || 0),
-  status: f.status || "inactive",
+  price: Number(f.price_per_hour || f.price || 0), // Menangani perbedaan nama field backend
+  status: f.is_active === 1 || f.status === "active" ? "active" : "inactive",
   image: f.image || null,
   venue: f.venue || { id: "", name: "—" },
-  venue_id: f.venue?.id || "",
+  venue_id: f.venue_id || f.venue?.id || "",
 });
 
 /**
- * ==========================================================
- * GET ALL FIELDS (ADMIN)
- * ==========================================================
+ * GET ALL FIELDS
  */
 export const getFields = async () => {
   const res = await api.get("/admin/fields");
@@ -27,9 +26,7 @@ export const getFields = async () => {
 };
 
 /**
- * ==========================================================
- * GET VENUES (SELECT OPTION)
- * ==========================================================
+ * GET VENUES FOR SELECT
  */
 export const getVenuesForSelect = async () => {
   const res = await api.get("/admin/venues");
@@ -37,69 +34,61 @@ export const getVenuesForSelect = async () => {
 };
 
 /**
- * ==========================================================
- * CREATE FIELD (MULTIPART)
- * ==========================================================
+ * HELPER: BUILD FORM DATA
+ * Digunakan agar logika create dan update seragam (DRY)
  */
-export const createField = async (payload) => {
+const buildFieldFormData = (data) => {
   const formData = new FormData();
   
-  formData.append("venue_id", payload.venue_id);
-  formData.append("name", payload.name);
-  formData.append("type", payload.type);
-  formData.append("price_per_hour", payload.price);
-  formData.append("is_active", payload.status === "active" ? 1 : 0);
+  // Pastikan venue_id terkirim sebagai string/number yang valid
+  formData.append("venue_id", data.venue_id);
+  formData.append("name", data.name);
+  formData.append("type", data.type);
+  formData.append("price_per_hour", data.price);
+  formData.append("is_active", data.status === "active" ? 1 : 0);
 
-  // --- FIX LOGIC DI SINI ---
-  if (payload.image instanceof File) {
-    // Kalau kamu pakai setValue("image", f), masuk ke sini
-    formData.append("image", payload.image);
-    console.log("File gambar ditemukan (File Object):", payload.image.name);
-  } else if (payload.image && payload.image[0]) {
-    // Kalau kamu pakai register standard, masuk ke sini
-    formData.append("image", payload.image[0]);
-    console.log("File gambar ditemukan (FileList):", payload.image[0].name);
-  } else {
-    console.log("Tidak ada file gambar yang dikirim ke backend");
+  // Logika Gambar yang sakti (Handle File object maupun FileList)
+  if (data.image) {
+    if (data.image instanceof File) {
+      formData.append("image", data.image);
+    } else if (data.image[0] instanceof File) {
+      formData.append("image", data.image[0]);
+    }
   }
 
+  return formData;
+};
+
+/**
+ * CREATE FIELD
+ */
+export const createField = async (data) => {
+  const formData = buildFieldFormData(data);
   const res = await api.post("/admin/fields", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  
   return res.data;
 };
 
 /**
- * ==========================================================
- * UPDATE FIELD (MULTIPART)
- * ==========================================================
+ * UPDATE FIELD
  */
 export const updateField = async (id, data) => {
-  const formData = new FormData();
+  const formData = buildFieldFormData(data);
+  
+  // Laravel mewajibkan method spoofing _method=PUT untuk multipart/form-data
+  formData.append("_method", "PUT");
 
-  formData.append("venue_id", Number(data.venue_id));
-  formData.append("name", data.name);
-  formData.append("type", data.type);
-  formData.append("price_per_hour", Number(data.price));
-  formData.append("is_active", data.status === "active" ? 1 : 0);
+  const res = await api.post(`/admin/fields/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
-  if (data.image?.[0]) {
-    formData.append("image", data.image[0]);
-  }
-
-  const res = await api.post(
-    `/admin/fields/${id}?_method=PUT`,
-    formData
-  );
-
-  return normalizeField(res.data.data);
+  // Jika backend mengembalikan data baru, kita normalize lagi
+  return res.data.data ? normalizeField(res.data.data) : res.data;
 };
 
 /**
- * ==========================================================
  * DELETE FIELD
- * ==========================================================
  */
 export const deleteField = async (id) => {
   const res = await api.delete(`/admin/fields/${id}`);

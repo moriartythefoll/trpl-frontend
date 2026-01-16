@@ -7,7 +7,8 @@ import userBookingService from "../../services/user/booking.service";
 import { 
   ArrowLeft, Calendar, Clock, Receipt, 
   Wallet, Info, CheckCircle2, AlertCircle,
-  MapPin, ChevronRight, CreditCard
+  MapPin, CreditCard, Hash,
+  Fingerprint, Sparkles, ReceiptText, Timer
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -22,16 +23,11 @@ const BookingDetail = () => {
     retry: 1
   });
 
-  // Handle data array dari API
   const booking = useMemo(() => {
     if (!rawData) return null;
-    const data = Array.isArray(rawData) ? rawData.find(b => b.booking_code === code) || rawData[0] : rawData;
-    return data;
+    return Array.isArray(rawData) ? rawData.find(b => b.booking_code === code) || rawData[0] : rawData;
   }, [rawData, code]);
 
-  // =======================
-  // UTILS & FORMATTERS
-  // =======================
   const formatRupiah = (num) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num || 0);
 
@@ -51,195 +47,268 @@ const BookingDetail = () => {
 
   if (isLoading) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-      <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Sinkronisasi Data...</p>
+      <div className="relative">
+        <div className="w-16 h-16 border-4 border-indigo-50 border-t-indigo-600 rounded-full animate-spin" />
+        <Hash className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600" size={20} />
+      </div>
+      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest animate-pulse">Retrieving Secure Data...</p>
     </div>
   );
 
   if (isError || !booking) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center text-center px-6">
-      <AlertCircle size={48} className="text-rose-500 mb-4" />
-      <h2 className="text-2xl font-black text-slate-900">Pesanan Tidak Ditemukan</h2>
-      <p className="text-slate-500 text-sm mb-6">Kode booking <span className="font-bold text-slate-800">{code}</span> mungkin sudah kedaluwarsa.</p>
-      <button onClick={() => navigate("/my-bookings")} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold text-sm">Kembali ke Riwayat</button>
+      <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6">
+        <AlertCircle size={48} className="text-rose-500" />
+      </div>
+      <h2 className="text-3xl font-black text-slate-900 italic uppercase">Expired Link</h2>
+      <p className="text-slate-500 text-sm mb-8 max-w-xs">The booking session you're looking for has been moved or deleted.</p>
+      <button onClick={() => navigate("/my-bookings")} className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl transition-transform active:scale-95">Go Back Home</button>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 pb-20 font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-20 font-sans selection:bg-indigo-100 selection:text-indigo-600">
       <Toaster position="top-center" />
       <Navbar />
 
-      <div className="container mx-auto px-4 lg:px-0 max-w-6xl py-24">
-        {/* TOP BAR */}
-        <div className="flex items-center justify-between mb-8">
-          <button 
-            onClick={() => navigate("/my-bookings")}
-            className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-black text-[10px] uppercase tracking-widest transition-all"
-          >
-            <ArrowLeft size={16} /> Back to History
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase italic">Status:</span>
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -right-[10%] w-[40%] h-[40%] bg-indigo-50 rounded-full blur-[120px] opacity-60" />
+        <div className="absolute top-[20%] -left-[10%] w-[30%] h-[30%] bg-blue-50 rounded-full blur-[100px] opacity-50" />
+      </div>
+
+      <div className="container mx-auto px-4 lg:px-0 max-w-6xl py-32 relative z-10">
+        
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+          <div className="space-y-2">
+            <button 
+              onClick={() => navigate("/my-bookings")}
+              className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-black text-[10px] uppercase tracking-[0.3em] transition-all group"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Back to History
+            </button>
+            <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">
+              Order <span className="text-indigo-600">Details</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-4 bg-white p-3 pr-6 rounded-full border border-slate-200 shadow-sm">
             <StatusBadge status={booking.payment_status} />
+            <div className="h-4 w-[1px] bg-slate-200" />
+            <div className="flex items-center gap-2 text-slate-400">
+               <Fingerprint size={14} />
+               <span className="text-[10px] font-black uppercase tracking-widest">Secured</span>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
-          {/* LEFT CONTENT (8 COL) */}
-          <div className="lg:col-span-8 space-y-8">
+          {/* LEFT: BOOKING INFO */}
+          <div className="lg:col-span-8 space-y-10">
             
-            {/* MAIN INFO CARD */}
+            {/* INVOICE CARD */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]"
+              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-[3rem] border border-slate-200 p-10 shadow-xl shadow-slate-200/40 relative overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-dashed border-slate-200 pb-8 mb-8 gap-4">
-                <div>
-                  <h1 className="text-4xl font-black tracking-tighter text-slate-900 italic">#{booking.booking_code}</h1>
-                  <p className="text-slate-400 text-xs font-bold mt-1">Dipesan pada {formatDateFull(booking.created_at)}</p>
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                <ReceiptText size={200} />
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-between border-b border-slate-100 pb-10 mb-10 gap-8">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest italic">
+                    <Sparkles size={12} /> Official Pass
+                  </div>
+                  <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none italic uppercase">
+                    #{booking.booking_code}
+                  </h2>
+                  <p className="text-slate-400 text-xs font-bold flex items-center gap-2 italic">
+                    <Calendar size={14} /> Issued on {formatDateFull(booking.created_at)}
+                  </p>
                 </div>
-                <div className="bg-indigo-600 px-6 py-4 rounded-[1.5rem] text-white text-right shadow-lg shadow-indigo-100">
-                  <p className="text-[9px] font-black uppercase tracking-widest opacity-80 mb-1">Total Bill</p>
-                  <p className="text-2xl font-black italic leading-none">{formatRupiah(booking.total_amount)}</p>
+                
+                <div className="flex flex-col items-end justify-center">
+                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 italic">Total Transaction</p>
+                   <div className="text-4xl font-black text-indigo-600 italic tracking-tighter">{formatRupiah(booking.total_amount)}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <InfoItem icon={<Wallet className="text-indigo-500" />} label="Payment" value="Bank Transfer" />
-                <InfoItem icon={<Clock className="text-amber-500" />} label="Expired At" value={booking.expired_at ? formatTimeOnly(booking.expired_at) + " WIB" : "-"} />
-                <InfoItem icon={<CheckCircle2 className="text-emerald-500" />} label="Verification" value={booking.payment_status === 'paid' ? 'Completed' : 'Awaiting'} />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <InfoBox icon={<Wallet />} label="Method" value="Bank Transfer" color="indigo" />
+                <InfoBox icon={<Clock />} label="Expiry" value={booking.expired_at ? formatTimeOnly(booking.expired_at) + " WIB" : "-"} color="amber" />
+                <InfoBox icon={<CheckCircle2 />} label="Verif" value={booking.payment_status === 'paid' || booking.payment_status === 'success' ? 'Verified' : 'Process'} color="emerald" />
               </div>
             </motion.div>
 
-            {/* SCHEDULE LIST */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 px-4">
-                <div className="h-[2px] w-8 bg-indigo-600"></div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">Booked Schedules ({booking.items?.length})</h3>
+            {/* TICKETS SECTION */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] italic">Tickets ({booking.items?.length})</h3>
+                <div className="h-px flex-1 bg-slate-200 mx-6"></div>
               </div>
 
-              {booking.items?.map((item, idx) => (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
-                  key={item.id || idx}
-                  className="group bg-white rounded-[2rem] border border-slate-100 p-2 pr-8 flex flex-col md:flex-row items-center gap-6 hover:border-indigo-200 transition-all shadow-sm"
-                >
-                  {/* Venue Image Placeholder or Icon */}
-                  <div className="w-full md:w-32 h-24 bg-slate-100 rounded-[1.5rem] flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-300 transition-colors shrink-0">
-                     <MapPin size={32} />
-                  </div>
-
-                  <div className="flex-grow space-y-1 text-center md:text-left">
-                    <h4 className="font-black text-slate-900 uppercase italic tracking-tight">{item.schedule?.field?.venue?.name}</h4>
-                    <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1 text-[11px] font-bold text-slate-500">
-                      <span className="flex items-center gap-1"><ChevronRight size={14} className="text-indigo-500"/> {item.schedule?.field?.name}</span>
-                      <span className="flex items-center gap-1"><Calendar size={14} className="text-indigo-500"/> {formatDateFull(item.schedule?.start_time).split(',')[1]}</span>
+              <div className="grid gap-4">
+                {booking.items?.map((item, idx) => (
+                  <motion.div 
+                    key={item.id || idx}
+                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
+                    className="relative group flex flex-col md:flex-row bg-white border border-slate-200 rounded-[2rem] overflow-hidden hover:border-indigo-400 transition-all shadow-sm hover:shadow-xl hover:shadow-indigo-50"
+                  >
+                    <div className="w-full md:w-48 h-32 md:h-auto bg-slate-900 relative flex flex-col items-center justify-center p-6 text-white overflow-hidden shrink-0">
+                      <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#F8FAFC] rounded-full border-r border-slate-200"></div>
+                      <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-l border-slate-200"></div>
+                      <MapPin className="text-indigo-400 mb-2 opacity-50" size={30} />
+                      <span className="text-[10px] font-black tracking-[0.2em] text-indigo-300 italic uppercase">Section {idx + 1}</span>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-8 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-8 w-full md:w-auto justify-center">
-                    <div className="text-center">
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Duration</p>
-                      <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                        <Clock size={12} className="text-indigo-500"/>
-                        <span className="text-[11px] font-black text-slate-700">{formatTimeOnly(item.schedule?.start_time)} - {formatTimeOnly(item.schedule?.end_time)}</span>
+                    <div className="flex-grow p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="space-y-2 text-center md:text-left">
+                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{item.schedule?.field?.name}</p>
+                        <h4 className="text-2xl font-black text-slate-900 italic uppercase tracking-tighter leading-none">
+                          {item.schedule?.field?.venue?.name}
+                        </h4>
+                        <div className="flex items-center justify-center md:justify-start gap-4 text-[11px] font-bold text-slate-400 italic mt-2">
+                           <span className="flex items-center gap-1"><Calendar size={12} /> {formatDateFull(item.schedule?.start_time).split(',')[1]}</span>
+                           <span className="flex items-center gap-1"><Clock size={12} /> {formatTimeOnly(item.schedule?.start_time)}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10 w-full md:w-auto">
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic mb-1">Sub-Total</p>
+                        <p className="text-xl font-black text-slate-900 italic leading-none">{formatRupiah(item.price)}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Subtotal</p>
-                      <p className="text-sm font-black text-indigo-600 italic">{formatRupiah(item.price)}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* RIGHT CONTENT (4 COL) */}
-          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-slate-200">
-              <h3 className="font-black text-xl mb-8 italic flex items-center gap-3">
-                <div className="p-2 bg-emerald-500 rounded-xl text-slate-900"><Receipt size={20} /></div>
-                Payment Step
+          {/* RIGHT: ACTION PANEL */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
+              <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-indigo-500 rounded-full blur-[80px] opacity-20"></div>
+              
+              <h3 className="font-black text-2xl mb-10 italic flex items-center gap-4">
+                <Receipt className="text-indigo-400" size={24} /> Payment
               </h3>
               
-              <div className="space-y-8 relative">
-                {/* Vertical Line */}
-                <div className="absolute left-4 top-0 bottom-0 w-[1px] bg-white/10 ml-[-0.5px]"></div>
+              <div className="space-y-10 relative">
+                <div className="absolute left-4 top-1 bottom-1 w-[1px] bg-white/10"></div>
                 
                 {[
-                  { n: 1, t: "Transfer Total Bill", d: "BCA 123-456-789 a/n SportCenter" },
-                  { n: 2, t: "Capture Receipt", d: "Take a clear photo of your proof" },
-                  { n: 3, t: "Submit for Review", d: "Our admin will check in 10 mins" }
+                  { n: 1, t: "Transfer Amount", d: "BCA 123-456-789 (SportCenter)" },
+                  { n: 2, t: "Capture Receipt", d: "Clear photo of your transfer" },
+                  { n: 3, t: "Fast Review", d: "Auto-verified in 5-15 mins" }
                 ].map((step) => (
                   <div className="flex gap-6 relative z-10" key={step.n}>
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black shrink-0 text-xs border-4 border-slate-900">
+                    <div className="w-8 h-8 rounded-full bg-white text-slate-900 flex items-center justify-center font-black shrink-0 text-xs border-[4px] border-slate-800 shadow-lg shadow-black">
                       {step.n}
                     </div>
                     <div>
-                      <p className="text-sm font-black uppercase italic tracking-wide">{step.t}</p>
-                      <p className="text-[11px] text-slate-400 font-medium mt-1">{step.d}</p>
+                      <p className="text-xs font-black uppercase italic tracking-wider text-white">{step.t}</p>
+                      <p className="text-[11px] text-slate-500 font-bold mt-1 leading-relaxed">{step.d}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
+              {/* KONDISI TOMBOL BERDASARKAN STATUS */}
               {booking.payment_status === "unpaid" ? (
                 <button
                   onClick={() => navigate(`/upload-payment/${booking.booking_code}`)}
-                  className="w-full mt-10 bg-white text-slate-900 py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-indigo-400 hover:text-white transition-all shadow-xl active:scale-95"
+                  className="group w-full mt-12 bg-indigo-600 text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-white hover:text-slate-900 transition-all duration-300 shadow-xl active:scale-95 flex items-center justify-center gap-3 italic"
                 >
-                  Upload Proof Now
+                  <CreditCard size={18} className="group-hover:rotate-12 transition-transform" /> 
+                  Upload Receipt
                 </button>
+              ) : booking.payment_status === "pending" ? (
+                <div className="mt-12 p-8 bg-indigo-500/10 border border-indigo-500/20 rounded-[2rem] text-center backdrop-blur-md flex flex-col items-center gap-4 overflow-hidden relative group">
+                  <div className="relative">
+                    <div className="w-12 h-12 border-2 border-indigo-500/20 rounded-full animate-ping absolute"></div>
+                    <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+                       <Timer size={20} className="text-white animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-1">Status: Pending</p>
+                    <p className="text-sm font-black text-white italic leading-tight uppercase">
+                      Awaiting Confirmation
+                    </p>
+                    <p className="text-[9px] text-slate-500 font-bold leading-relaxed px-4">
+                      Our admin is validating your receipt. Please check back shortly.
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <div className="mt-10 p-6 bg-white/5 border border-white/10 rounded-[1.5rem] text-center">
-                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Status Update</p>
-                   <p className="text-sm font-bold text-emerald-400 mt-2">
-                     {booking.payment_status === 'pending' ? 'Checking your payment...' : 'Transaction Completed!'}
-                   </p>
+                <div className="mt-12 p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] text-center backdrop-blur-md flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                     <CheckCircle2 size={24} className="text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400 mb-1">Verified</p>
+                    <p className="text-sm font-black text-white italic uppercase">Access Granted</p>
+                  </div>
                 </div>
               )}
             </div>
             
-            <div className="p-6 bg-indigo-50 rounded-[2rem] border border-indigo-100 flex items-start gap-4">
-              <Info className="text-indigo-500 shrink-0" size={20} />
-              <p className="text-[11px] text-indigo-900/60 leading-relaxed font-bold">
-                Need help? Contact our support at <span className="text-indigo-900">@sportcenter_support</span> for fast response.
-              </p>
+            <div className="p-8 bg-white border border-slate-200 rounded-[2.5rem] flex flex-col gap-4 shadow-sm">
+               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                  <Info size={24} />
+               </div>
+               <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase italic tracking-widest text-slate-900">Need Assistance?</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-bold">
+                    Problems with payment? Message our 24/7 concierge at <span className="text-indigo-600 underline">@sportcenter_help</span>
+                  </p>
+               </div>
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <div className="container mx-auto max-w-6xl px-4 opacity-30">
+        <div className="border-t border-slate-200 pt-8 text-center">
+           <p className="text-[10px] font-black uppercase tracking-[1em] text-slate-400 italic">Official SportCenter Digital Invoice</p>
         </div>
       </div>
     </div>
   );
 };
 
-// Helper Components
-const InfoItem = ({ icon, label, value }) => (
-  <div className="flex items-center gap-4 p-4 bg-white border border-slate-50 rounded-2xl">
-    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-      {icon}
+// UI Components
+const InfoBox = ({ icon, label, value, color }) => {
+  const colors = {
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  };
+  return (
+    <div className={`p-5 rounded-[2rem] border ${colors[color]} space-y-3 transition-transform hover:-translate-y-1`}>
+      <div className="opacity-70">{React.cloneElement(icon, { size: 20 })}</div>
+      <div>
+        <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1 italic">{label}</p>
+        <p className="text-[11px] font-black truncate uppercase tracking-tighter italic">{value}</p>
+      </div>
     </div>
-    <div>
-      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{label}</p>
-      <p className="text-xs font-black text-slate-700 truncate">{value}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 const StatusBadge = ({ status }) => {
   const styles = {
     unpaid: "bg-rose-50 text-rose-600 border-rose-100",
     pending: "bg-amber-50 text-amber-600 border-amber-100",
     paid: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    success: "bg-emerald-50 text-emerald-600 border-emerald-100",
   };
   return (
-    <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${styles[status] || "bg-slate-50 text-slate-500"}`}>
-      {status}
-    </span>
+    <div className={`px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border italic ${styles[status] || "bg-slate-50 text-slate-500"}`}>
+      {status === 'pending' ? 'Awaiting Confirmation' : status}
+    </div>
   );
 };
 

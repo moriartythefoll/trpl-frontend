@@ -37,6 +37,10 @@ export const createVenue = async (payload) => {
   formData.append("open_time", formatTimeTo24H(payload.open_time));
   formData.append("close_time", formatTimeTo24H(payload.close_time));
 
+  if (payload.owner_id) {
+    formData.append("owner_id", payload.owner_id);
+  }
+
   // Ambil file dari FileList (React Hook Form)
   if (payload.image?.[0]) {
     formData.append("image", payload.image[0]);
@@ -56,6 +60,11 @@ export const updateVenue = async (id, payload) => {
   formData.append("description", payload.description || "");
   formData.append("open_time", formatTimeTo24H(payload.open_time));
   formData.append("close_time", formatTimeTo24H(payload.close_time));
+
+
+  if (payload.owner_id) {
+    formData.append("owner_id", payload.owner_id);
+  }
   
   // Method Spoofing untuk Laravel
   formData.append("_method", "PUT");

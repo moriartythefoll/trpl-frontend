@@ -43,8 +43,21 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* TOASTER DIBUAT CLEAN (Agar tidak dobel gaya) */}
-      <Toaster position="top-right" /> 
+      <Toaster 
+        position="top-right"
+        containerStyle={{
+          zIndex: 99999, // Memastikan di atas semua elemen UI
+        }}
+        toastOptions={{
+          style: {
+            background: '#18181b', // Warna zinc-900 biar masuk tema kamu
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '12px',
+            fontWeight: 'bold',
+          },
+        }}
+      /> 
       <AppRoutes />
     </BrowserRouter>
   );
