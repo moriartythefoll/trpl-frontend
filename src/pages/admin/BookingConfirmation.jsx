@@ -8,7 +8,7 @@ import {
   LucideClock, LucideReceipt, Search, Filter,
   TrendingUp, AlertTriangle, ShieldCheck, 
   Calendar as CalendarIcon, ArrowRightLeft, 
-  Download, RefreshCw, ChevronRight
+  RefreshCw, ChevronRight, Ghost, Ban
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -52,7 +52,7 @@ export default function AdminBookingPage() {
   // --- UI STATES ---
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState(""); // Format: YYYY-MM-DD
+  const [dateFilter, setDateFilter] = useState(""); 
 
   const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
@@ -60,7 +60,7 @@ export default function AdminBookingPage() {
   const { data: bookings = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["admin", "bookings"],
     queryFn: getBookings,
-    refetchInterval: 20000, // Background refresh setiap 20 detik
+    refetchInterval: 20000, 
   });
 
   // --- MUTATIONS ---
@@ -78,14 +78,14 @@ export default function AdminBookingPage() {
   const rejectMutation = useMutation({
     mutationFn: rejectBooking,
     onSuccess: () => {
-      toast.success("Transaction Voided", { icon: '🚫' });
+      toast.success("Transaction Voided & Logic Reversed", { icon: '🚫' });
       queryClient.invalidateQueries(["admin", "bookings"]);
     },
+    onError: (err) => toast.error(err.response?.data?.message || "Action Failed"),
   });
 
   // --- CORE LOGIC: FILTERING & ACCOUNTING ---
   const processedData = useMemo(() => {
-    // 1. Jalankan Filter
     const filtered = bookings.filter(b => {
       const searchStr = `${b.booking_code} ${b.user?.name || ""} ${b.user?.email || ""}`.toLowerCase();
       const matchesSearch = searchStr.includes(searchTerm.toLowerCase());
@@ -95,14 +95,13 @@ export default function AdminBookingPage() {
       return matchesSearch && matchesStatus && matchesDate;
     }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    // 2. Kalkulasi Statistik Berdasarkan Filter (Reaktif)
     const paidOnly = filtered.filter(b => b.payment_status === 'paid');
     const totalRevenue = paidOnly.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
     const pendingCount = filtered.filter(b => b.payment_status === 'pending').length;
 
     return {
       list: filtered,
-      revenue: Math.floor(totalRevenue), // Clean integer for currency
+      revenue: Math.floor(totalRevenue),
       pending: pendingCount,
       totalCount: filtered.length
     };
@@ -111,12 +110,13 @@ export default function AdminBookingPage() {
   // --- HANDLERS ---
   const openProof = (path) => {
     if (!path) return toast.error("Bukti tidak tersedia");
-    const cleanPath = path.replace(/^\//, "");
-    setPreviewUrl(`${API_URL}/storage/${cleanPath}`);
+    // Logic pendeteksi apakah path sudah URL penuh atau masih relatif
+    const fullUrl = path.startsWith('http') ? path : `${API_URL}/storage/${path.replace(/^\//, "")}`;
+    setPreviewUrl(fullUrl);
   };
 
   const handleReject = (code) => {
-    if (window.confirm(`Sistem Audit: Batalkan pesanan ${code}?`)) {
+    if (window.confirm(`Audit Protocol: Batalkan dan Void pesanan ${code}? Tindakan ini akan menghapus bukti bayar dan melepas slot jadwal.`)) {
       rejectMutation.mutate(code);
     }
   };
@@ -136,10 +136,10 @@ export default function AdminBookingPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-700">
-      <Toaster position="top-center" />
+      <Toaster position="top-right" />
       
       <div className="max-w-7xl mx-auto">
-        {/* --- TOP HUD: ACCOUNTING CARDS --- */}
+        {/* --- TOP HUD --- */}
         <header className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
           <div className="lg:col-span-5 flex flex-col justify-center">
              <div className="flex items-center gap-3 mb-4">
@@ -147,7 +147,7 @@ export default function AdminBookingPage() {
                 {isFetching && <RefreshCw size={14} className="animate-spin text-slate-400" />}
              </div>
              <h1 className="text-6xl font-black tracking-tighter uppercase italic leading-[0.85] text-slate-950">
-               Transaction<br/><span className="text-indigo-600 not-italic">Ledger.</span>
+                Confirm<br/><span className="text-cyan-500 italic">Booking</span>
              </h1>
           </div>
 
@@ -186,7 +186,7 @@ export default function AdminBookingPage() {
           </motion.div>
         </header>
 
-        {/* --- INTERFACE: FILTERS & SEARCH --- */}
+        {/* --- INTERFACE: FILTERS --- */}
         <section className="bg-white p-4 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40 mb-10 flex flex-col xl:flex-row gap-6 items-center">
            <div className="relative flex-1 w-full group">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
@@ -200,7 +200,6 @@ export default function AdminBookingPage() {
            </div>
 
            <div className="flex flex-wrap justify-center items-center gap-4 w-full xl:w-auto">
-              {/* Date Filter Input */}
               <div className="flex items-center gap-3 bg-slate-900 px-6 py-4 rounded-[1.5rem] shadow-lg shadow-slate-200 border border-slate-800">
                  <CalendarIcon size={16} className="text-indigo-400" />
                  <input 
@@ -216,12 +215,12 @@ export default function AdminBookingPage() {
                  )}
               </div>
 
-              <div className="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
-                 {['all', 'pending', 'paid'].map((tab) => (
+              <div className="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 overflow-x-auto max-w-[400px] no-scrollbar">
+                 {['all', 'pending', 'paid', 'expired', 'cancelled'].map((tab) => (
                    <button 
                      key={tab} 
                      onClick={() => setStatusFilter(tab)}
-                     className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === tab ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+                     className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${statusFilter === tab ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
                    >
                      {tab}
                    </button>
@@ -238,7 +237,7 @@ export default function AdminBookingPage() {
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Master Record</th>
                   <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Schedule Distribution</th>
-                  <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center">Currency Value</th>
+                  <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center">Value</th>
                   <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center">Auth Status</th>
                   <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-right">MGT Commands</th>
                 </tr>
@@ -256,7 +255,7 @@ export default function AdminBookingPage() {
                   <motion.tr 
                     layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     key={b.id} 
-                    className={`group transition-all ${b.payment_status === 'pending' ? 'bg-white' : 'bg-slate-50/30'}`}
+                    className={`group transition-all ${b.payment_status === 'pending' ? 'bg-indigo-50/30' : 'bg-transparent'}`}
                   >
                     <td className="px-10 py-8">
                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-lg text-[9px] font-black tracking-widest mb-3">
@@ -287,43 +286,46 @@ export default function AdminBookingPage() {
                           ))}
                        </div>
                     </td>
-                    <td className="px-10 py-8 text-center font-black text-slate-950 tracking-tighter text-lg italic">
+                    <td className="px-10 py-8 text-center font-black text-slate-950 tracking-tighter text-lg italic whitespace-nowrap">
                        Rp {Number(b.total_amount || 0).toLocaleString('id-ID')}
                     </td>
                     <td className="px-10 py-8 text-center">
                        <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                         b.payment_status === 'paid' 
-                         ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-100' 
-                         : 'bg-white text-amber-500 border-amber-200 shadow-sm'
+                         b.payment_status === 'paid' ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-100' :
+                         b.payment_status === 'pending' ? 'bg-amber-500 text-white border-amber-400 animate-pulse' :
+                         b.payment_status === 'expired' ? 'bg-slate-400 text-white border-slate-300' :
+                         b.payment_status === 'cancelled' ? 'bg-rose-500 text-white border-rose-400' :
+                         'bg-white text-slate-400 border-slate-200'
                        }`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${b.payment_status === 'paid' ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full ${b.payment_status === 'paid' ? 'bg-white' : 'bg-current animate-pulse'}`} />
                           {b.payment_status}
                        </div>
                     </td>
-                    <td className="px-10 py-8">
+                    <td className="px-10 py-8 text-right">
                        <div className="flex justify-end items-center gap-3">
                           {b.payment_proof && (
                             <button 
                               onClick={() => openProof(b.payment_proof)} 
                               className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-90"
-                              title="Review Bukti"
+                              title="Review Receipt"
                             >
                               <LucideEye size={18} />
                             </button>
                           )}
                           
                           {b.payment_status === 'pending' && (
-                             <div className="flex gap-2 bg-slate-100 p-1.5 rounded-[1.5rem]">
+                             <div className="flex gap-2 bg-slate-100 p-1.5 rounded-[1.5rem] border border-slate-200">
                                 <button 
                                   onClick={() => confirmMutation.mutate(b.booking_code)} 
                                   disabled={confirmMutation.isPending}
-                                  className="px-6 py-3 bg-white text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                                  className="px-6 py-3 bg-white text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-sm flex items-center gap-2"
                                 >
-                                  VALIDATE
+                                  {confirmMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : 'VALIDATE'}
                                 </button>
                                 <button 
                                   onClick={() => handleReject(b.booking_code)} 
                                   className="p-3 text-slate-400 hover:text-rose-500 transition-colors"
+                                  title="Void Transaction"
                                 >
                                   <LucideX size={18} />
                                 </button>
@@ -331,8 +333,20 @@ export default function AdminBookingPage() {
                           )}
 
                           {b.payment_status === 'paid' && (
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shadow-inner">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500">
                                <LucideCheckCircle size={20} />
+                            </div>
+                          )}
+
+                          {b.payment_status === 'expired' && (
+                            <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400" title="Auto-Expired by System">
+                               <Ghost size={20} />
+                            </div>
+                          )}
+
+                          {b.payment_status === 'cancelled' && (
+                            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500" title="Rejected by Admin">
+                               <Ban size={20} />
                             </div>
                           )}
                        </div>
@@ -349,7 +363,7 @@ export default function AdminBookingPage() {
                <div className="p-8 bg-slate-50 rounded-[3rem] text-slate-200 mb-6">
                   <ArrowRightLeft size={64} />
                </div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">No matching records found in this vault</p>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">No matching records in this vault</p>
                <button onClick={() => { setSearchTerm(""); setDateFilter(""); setStatusFilter("all"); }} className="mt-6 text-indigo-600 text-[10px] font-black uppercase underline tracking-widest">Clear All Protocols</button>
             </div>
           )}
