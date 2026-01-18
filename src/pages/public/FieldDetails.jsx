@@ -252,7 +252,7 @@ export default function FieldDetails() {
                 </div>
               </div>
 
-              {/* ✅ IMPROVED BUTTON: LANGSUNG MENYALA TANPA HOVER */}
+              {/* ✅ IMPROVED BUTTON: FIX HILANG SAAT CHOOSE JADWAL */}
               <motion.button
                 whileHover={selectedSlots.length > 0 ? { scale: 1.02 } : {}} 
                 whileTap={selectedSlots.length > 0 ? { scale: 0.98 } : {}}
@@ -260,7 +260,7 @@ export default function FieldDetails() {
                 onClick={handleCheckout}
                 className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all duration-500 italic text-[11px] shadow-xl flex items-center justify-center gap-3
                   ${selectedSlots.length > 0 
-                    ? "bg-primary text-slate-900 shadow-primary/30 opacity-100 scale-100" 
+                    ? "bg-amber-500 text-slate-900 shadow-amber-500/20 opacity-100 scale-100" // Gunakan warna spesifik amber-500
                     : "bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed scale-95"
                   }`}
               >
@@ -270,7 +270,9 @@ export default function FieldDetails() {
                   </>
                 ) : (
                   <>
-                    {selectedSlots.length > 0 && <Zap size={14} fill="currentColor" />} Checkout Now
+                    {/* Ikon diganti ke ShieldCheck agar lebih 'Wealthy' dan stabil */}
+                    {selectedSlots.length > 0 && <ShieldCheck size={14} fill="currentColor" />} 
+                    {selectedSlots.length > 0 ? "Authorize Transaction" : "Checkout Now"}
                   </>
                 )}
               </motion.button>
