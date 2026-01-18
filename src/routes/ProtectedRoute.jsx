@@ -28,9 +28,14 @@ const ProtectedRoute = ({ allowedRoles }) => {
   // Return null agar layar tetap di halaman sebelumnya sampai user terisi
   if (!user) return null;
 
-  // 4. CEK ROLE
+ // 4. CEK ROLE (Smarter Guard)
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    // Jika dia Admin tapi nyasar ke rute User, atau sebaliknya
+    if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    if (user.role === 'owner') return <Navigate to="/owner/dashboard" replace />;
+    
+    // Default untuk user biasa atau jika role tidak dikenal
+    return <Navigate to="/home" replace />; 
   }
 
   // 5. GASS!

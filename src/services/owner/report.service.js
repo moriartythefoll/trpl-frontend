@@ -1,11 +1,49 @@
-import api from "axios"; // Pastikan path axios instance kamu benar
+import api from "../axios";
 
-export const getOwnerStats = async () => {
-  const res = await api.get("/owner/reports");
-  return res.data; // Mengambil total_revenue, total_bookings, dll
+/**
+ * Ambil report summary + chart
+ * @param {string} range - monthly | weekly | yearly
+ */
+export const getOwnerStats = async (range = "monthly") => {
+  try {
+    const res = await api.get("/owner/reports", {
+      params: { range },
+    });
+
+    return {
+      summary: res.data.summary ?? {
+        total_revenue: 0,
+        total_bookings: 0,
+        success_rate: 0,
+        total_slots: 0,
+      },
+      chart: Array.isArray(res.data.data) ? res.data.data : [],
+      metadata: res.data.metadata ?? null,
+    };
+
+  } catch (error) {
+    console.error(
+      "❌ Error fetching owner stats:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };
 
+/**
+ * Ambil transaksi terbaru (untuk table)
+ */
 export const getOwnerTransactions = async () => {
-  const res = await api.get("/owner/transactions");
-  return res.data; // Mengambil list transaksi terakhir
+  try {
+    const res = await api.get("/owner/transactions");
+
+    return Array.isArray(res.data.data) ? res.data.data : [];
+
+  } catch (error) {
+    console.error(
+      "❌ Error fetching owner transactions:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };

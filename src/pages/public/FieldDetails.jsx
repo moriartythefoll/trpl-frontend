@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../services/axios";
 import { createBooking } from "../../services/user/booking.service"; 
@@ -8,241 +8,279 @@ import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 import Navbar from "../../components/public/Navbar";
 import { 
-  LucideCalendar, Clock, MapPin, 
-  ChevronLeft, ShieldCheck, Activity, Info, ChevronRight, Loader2
+  ChevronLeft, Loader2, MapPin, Star, Calendar, ShieldCheck, Zap
 } from "lucide-react";
 
 export default function FieldDetails() {
-  const { id } = useParams();
+  const { id } = useParams(); 
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('sv-SE'));
   const [selectedSlots, setSelectedSlots] = useState([]);
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  const { data: scheduleResponse, isLoading } = useQuery({
-    queryKey: ["field-schedules", id],
+  const { data: response, isFetching } = useQuery({
+    queryKey: ["field-schedules", id, selectedDate],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const res = await api.get(`/explore/fields/${id}/schedules?date=${today}`);
+      const res = await api.get(`/explore/fields/${id}/schedules?date=${selectedDate}`);
       return res.data; 
-    },
-  });
-
-  const schedules = scheduleResponse?.data || [];
-  const fieldFromDB = schedules.length > 0 ? schedules[0] : null;
-  const fieldName = fieldFromDB?.field?.name || "Premium Arena";
-  const venueName = fieldFromDB?.field?.venue?.name || "Elite Sport Center";
-  const fieldPrice = fieldFromDB?.price || 0;
-
-  // ==========================================
-  // FIXED MUTATION LOGIC (NO MORE SKIPPING)
-  // ==========================================
-  const checkoutMutation = useMutation({
-    mutationFn: createBooking,
-    onMutate: () => {
-      toast.loading("Securing your sessions...", { id: "checkout-status" });
-    },
-    onSuccess: (response) => {
-      // Ambil booking_code dari response (asumsi struktur: response.data.booking_code)
-      const bookingCode = response?.data?.booking_code;
-
-      toast.success("Victory! Booking Secured", { 
-        id: "checkout-status",
-        duration: 3000 
-      });
-
-      // Navigasi ke HALAMAN DETAIL BOOKING, bukan riwayat
-      if (bookingCode) {
-        setTimeout(() => navigate(`/bookings/${bookingCode}`), 1200);
-      } else {
-        // Fallback jika code tidak ditemukan
-        setTimeout(() => navigate("/my-bookings"), 1200);
-      }
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || "Booking failed. Try again.", { id: "checkout-status" });
     }
   });
 
-  const handleToggleSlot = (slotId) => {
+  const schedules = response?.data || [];
+  
+  const fieldName = useMemo(() => {
+    if (!response) return "Loading...";
+    return response.field_name || schedules[0]?.field_name || "Premium Court";
+  }, [response, schedules]);
+
+  const venueName = response?.venue_name || "Sport Arena";
+  const fieldPrice = schedules.length > 0 ? parseFloat(schedules[0].price) : 0;
+
+  const filteredSchedules = useMemo(() => {
+    return schedules.filter(slot => {
+      const hour = parseInt(slot.start_time.split(':')[0]);
+      if (activeFilter === "morning") return hour < 12;
+      if (activeFilter === "afternoon") return hour >= 12 && hour < 18;
+      if (activeFilter === "night") return hour >= 18;
+      return true;
+    });
+  }, [schedules, activeFilter]);
+
+  const dateOptions = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      return {
+        full: d.toLocaleDateString('sv-SE'),
+        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNum: d.getDate()
+      };
+    });
+  }, []);
+
+  const handleToggleSlot = (slot) => {
+    const now = new Date();
+    const isToday = selectedDate === now.toLocaleDateString('sv-SE');
+    const [startHour] = slot.start_time.split(':');
+    if (isToday && parseInt(startHour) <= now.getHours()) return toast.error("Waktu sudah terlewat!");
+
     setSelectedSlots((prev) => {
-      const isSelecting = !prev.includes(slotId);
-      if (isSelecting) {
-        toast.success("Session added", { id: `slot-${slotId}`, duration: 1000, icon: '⚡' });
-        return [...prev, slotId];
-      } else {
-        toast("Session removed", { id: `slot-${slotId}`, duration: 1000, icon: '🗑️' });
-        return prev.filter((s) => s !== slotId);
-      }
+      const existingIndex = prev.findIndex(s => s.id === slot.id);
+      if (existingIndex !== -1) return prev.filter((_, index) => index !== existingIndex);
+      return [...prev, {
+        id: slot.id,
+        start_time: `${selectedDate} ${slot.start_time}:00`,
+        end_time: `${selectedDate} ${slot.end_time}:00`
+      }];
     });
   };
 
-  if (isLoading) return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center">
-      <motion.div 
-        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 1, 0.3] }}
-        transition={{ repeat: Infinity, duration: 1.5 }}
-        className="w-20 h-20 bg-[#ccff00] rounded-full blur-3xl absolute"
-      />
-      <div className="w-12 h-12 border-4 border-white/10 border-t-[#ccff00] rounded-full animate-spin relative z-10"></div>
-    </div>
-  );
+  const checkoutMutation = useMutation({
+    mutationFn: (payload) => createBooking(payload),
+    onSuccess: () => {
+      toast.success("Booking Berhasil!");
+      queryClient.invalidateQueries(["my-bookings"]);
+      navigate("/my-bookings");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || "Booking gagal.")
+  });
+
+  const handleCheckout = () => {
+    if (!user) return toast.error("Silakan login terlebih dahulu");
+    if (selectedSlots.length === 0) return toast.error("Pilih minimal satu jam");
+    checkoutMutation.mutate({ field_id: id, slots: selectedSlots });
+  };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pb-32 selection:bg-[#ccff00] selection:text-black">
+    <div className="min-h-screen bg-[#f8fafc] antialiased font-sans">
       <Navbar />
       
-      {/* 1. HERO SECTION */}
-      <div className="container mx-auto px-6 pt-10">
-        <div className="relative group overflow-hidden rounded-[3rem] md:rounded-[4rem] bg-[#0f0f0f] border border-white/5 p-8 md:p-16">
-          <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Activity size={300} strokeWidth={1} />
-          </div>
-          
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <button 
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-500 font-black text-[10px] uppercase tracking-[0.4em] mb-12 hover:text-[#ccff00] transition-colors"
-            >
-              <ChevronLeft size={14} /> Back to Exploration
-            </button>
-            
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="h-px w-8 bg-[#ccff00]"></span>
-                  <span className="text-[#ccff00] font-black text-[10px] uppercase tracking-[0.5em]">Verified Arena</span>
-                </div>
-                <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">
-                  {fieldName}
-                </h1>
-                <div className="flex items-center gap-6">
-                  <p className="flex items-center gap-2 text-gray-400 font-black uppercase text-[10px] tracking-widest">
-                    <MapPin size={14} className="text-[#ccff00]"/> {venueName}
-                  </p>
-                  <p className="flex items-center gap-2 text-gray-400 font-black uppercase text-[10px] tracking-widest">
-                    <ShieldCheck size={14} className="text-blue-500"/> Insurance Covered
-                  </p>
-                </div>
-              </div>
+      {/* 1. COMPACT PRO HEADER */}
+      <div className="bg-slate-900 pt-24 pb-32 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `radial-gradient(#fff 0.5px, transparent 0.5px)`, backgroundSize: '30px 30px' }} />
+        <div className="absolute -bottom-10 -left-10 select-none pointer-events-none opacity-[0.02] hidden md:block">
+           <h2 className="text-[12rem] font-black text-white italic leading-none uppercase tracking-tighter">{fieldName.split(' ')[0]}</h2>
+        </div>
 
-              <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 min-w-[200px]">
-                <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest mb-2">Price Per Hour</p>
-                <div className="text-4xl font-black italic text-[#ccff00]">
-                  Rp {fieldPrice.toLocaleString()}
-                </div>
+        <div className="container mx-auto px-6 md:px-20 relative z-10">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/30 hover:text-primary mb-6 font-black text-[9px] uppercase tracking-[0.4em] transition-all">
+            <ChevronLeft size={14}/> Back to Explore
+          </button>
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-l-2 border-primary/30 pl-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-primary text-slate-900 px-2 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest flex items-center gap-1">
+                  <ShieldCheck size={10}/> Premium Court
+                </span>
+                <div className="flex text-yellow-500"><Star size={10} fill="currentColor" /></div>
               </div>
+              <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">{fieldName}</h1>
+              <p className="text-white/40 text-[10px] font-bold uppercase flex items-center gap-2 tracking-widest mt-4">
+                <MapPin size={12} className="text-primary" /> {venueName}
+              </p>
             </div>
-          </motion.div>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl text-right hidden md:block">
+              <p className="text-white/30 font-black text-[8px] uppercase tracking-widest mb-1">Price per Hour</p>
+              <p className="text-3xl font-black text-primary italic leading-none">Rp {fieldPrice.toLocaleString()}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 mt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="container mx-auto px-6 md:px-20 -mt-12 relative z-30 pb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* 2. SCHEDULE GRID */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-[#0f0f0f] p-8 md:p-12 rounded-[3.5rem] border border-white/5">
-              <div className="flex items-center justify-between mb-12">
-                <h3 className="text-xs font-black uppercase tracking-[0.4em] text-gray-500 flex items-center gap-3">
-                  <LucideCalendar size={18} className="text-[#ccff00]" /> Pick Your Session
-                </h3>
+          <div className="lg:col-span-8 space-y-6">
+            {/* DATE PICKER */}
+            <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
+               <div className="flex items-center gap-3 mb-4 px-2">
+                  <Calendar size={14} className="text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Play Date</span>
+               </div>
+               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                {dateOptions.map((date) => (
+                  <button
+                    key={date.full}
+                    onClick={() => { setSelectedDate(date.full); setSelectedSlots([]); }}
+                    className={`flex flex-col items-center min-w-[90px] py-6 rounded-[1.8rem] border-2 transition-all duration-300
+                      ${selectedDate === date.full 
+                        ? "bg-slate-900 border-slate-900 text-white shadow-lg -translate-y-1 scale-105" 
+                        : "bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100"}`}
+                  >
+                    <span className="text-[9px] font-black uppercase mb-1 opacity-50">{date.dayName}</span>
+                    <span className="text-2xl font-black italic">{date.dayNum}</span>
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                <AnimatePresence>
-                  {schedules.map((slot, index) => {
+            {/* SESSION GRID */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white relative min-h-[400px]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                <h3 className="text-xl font-black uppercase italic tracking-tighter">Choose Session</h3>
+                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                  {['all', 'morning', 'afternoon', 'night'].map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setActiveFilter(filter)}
+                      className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all
+                        ${activeFilter === filter ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {isFetching && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-[2.5rem]">
+                  <Loader2 className="animate-spin text-primary" size={40} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 gap-4">
+                <AnimatePresence mode="popLayout">
+                  {filteredSchedules.map((slot) => {
+                    const isSelected = selectedSlots.some(s => s.id === slot.id);
                     const isBooked = slot.status !== "available";
-                    const isSelected = selectedSlots.includes(slot.id);
                     
+                    const now = new Date();
+                    const isToday = selectedDate === now.toLocaleDateString('sv-SE');
+                    const [startHour] = slot.start_time.split(':');
+                    const isPast = isToday && parseInt(startHour) <= now.getHours();
+                    const isDisabled = isBooked || isPast;
+
                     return (
                       <motion.button
+                        layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                         key={slot.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        disabled={isBooked}
-                        onClick={() => handleToggleSlot(slot.id)}
-                        className={`group relative py-6 px-4 rounded-[2rem] font-black text-[11px] transition-all duration-300 border-2 flex flex-col items-center gap-3
-                          ${isBooked ? "bg-black/40 border-transparent text-gray-800 cursor-not-allowed" : 
-                          isSelected ? "bg-[#ccff00] border-[#ccff00] text-black shadow-[0_20px_40px_rgba(204,255,0,0.15)] -translate-y-2" : 
-                          "bg-[#151515] border-white/5 text-gray-400 hover:border-[#ccff00]/40 hover:text-white"}`}
+                        disabled={isDisabled}
+                        onClick={() => handleToggleSlot(slot)}
+                        className={`py-7 rounded-[2rem] border-2 transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden
+                          ${isPast 
+                            ? "bg-slate-50 border-slate-50 opacity-10 grayscale cursor-not-allowed" 
+                            : isBooked
+                              ? "bg-red-50/50 border-red-100 text-red-300 opacity-40 cursor-not-allowed" 
+                              : isSelected 
+                                ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/30 -translate-y-2 z-10 scale-105" // ✅ FULL HITAM SAAT DIPILIH
+                                : "bg-white border-primary/20 text-slate-900 shadow-sm hover:border-primary hover:shadow-md hover:-translate-y-1" 
+                          }`}
                       >
-                        <Clock size={14} className={isSelected ? "text-black" : "text-[#ccff00]"} />
-                        <span className="tracking-widest">{slot.start_time} - {slot.end_time}</span>
-                        {isBooked && <div className="absolute inset-0 bg-black/60 rounded-[2rem] flex items-center justify-center backdrop-blur-[2px]"><span className="text-[8px] uppercase tracking-tighter text-white/40">Occupied</span></div>}
+                        <span className={`text-2xl font-black italic leading-none mb-1 ${isSelected ? "text-white" : !isDisabled ? "text-slate-900" : ""}`}>
+                          {slot.start_time}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${isSelected ? "text-primary font-black" : isBooked ? "text-red-400" : isPast ? "text-slate-400" : "text-primary"}`}>
+                          {isPast ? 'Past' : isBooked ? 'Full' : isSelected ? 'Selected' : 'Book'}
+                        </span>
+
+                        {!isDisabled && !isSelected && (
+                          <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                        )}
                       </motion.button>
                     );
                   })}
                 </AnimatePresence>
               </div>
             </div>
-
-            <div className="bg-[#0f0f0f] p-8 rounded-[2.5rem] border border-white/5 flex flex-col md:flex-row gap-6 items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00]">
-                        <Info size={20} />
-                    </div>
-                    <div>
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-white">Cancellation Policy</h4>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase">Refund available 24h before match</p>
-                    </div>
-                </div>
-                <ChevronRight className="text-gray-800 hidden md:block" />
-            </div>
           </div>
 
-          {/* 3. SIDEBAR SUMMARY */}
-          <div className="lg:col-span-1">
-            <motion.div 
-              layout
-              className="bg-[#ccff00] p-10 rounded-[4rem] text-black sticky top-32 shadow-[0_40px_80px_rgba(204,255,0,0.1)] overflow-hidden"
-            >
-              <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+          {/* RIGHT SIDE SUMMARY */}
+          <div className="lg:col-span-4 sticky top-24">
+            <div className="bg-slate-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden border border-white/5">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-3xl" />
               
-              <h3 className="font-black text-[11px] uppercase tracking-[0.5em] mb-10 opacity-40">Order Review</h3>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-8 flex items-center gap-2">
+                <div className="w-4 h-[1px] bg-primary" /> My Booking
+              </h4>
               
-              <div className="space-y-5 mb-12 relative z-10">
-                <div className="flex justify-between items-end border-b border-black/5 pb-5">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase opacity-40">Arena Name</p>
-                    <p className="font-black uppercase italic text-sm truncate max-w-[150px]">{fieldName}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black uppercase opacity-40">Sessions</p>
-                    <p className="font-black italic text-sm">{selectedSlots.length} HR</p>
-                  </div>
+              <div className="space-y-4 mb-10">
+                <div className="flex justify-between items-center bg-white/5 p-5 rounded-2xl border border-white/10">
+                  <span className="text-white/40 font-black uppercase text-[9px] tracking-widest text-left">Selected<br/>Sessions</span>
+                  <span className="font-black italic text-3xl text-primary leading-none">{selectedSlots.length} <span className="text-[10px] not-italic text-white">Hr</span></span>
                 </div>
                 
-                <div className="pt-5">
-                  <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">Total Payable</p>
-                  <div className="text-5xl font-black italic tracking-tighter leading-none">
-                    Rp {(selectedSlots.length * fieldPrice).toLocaleString()}
-                  </div>
+                <div className="p-4 text-center">
+                   <p className="text-white/40 font-black uppercase text-[9px] mb-2 tracking-widest">Total Amount</p>
+                   <p className="text-5xl font-black text-white italic tracking-tighter">
+                      <span className="text-primary text-xs not-italic mr-1">IDR</span>
+                      {(selectedSlots.length * fieldPrice).toLocaleString()}
+                   </p>
                 </div>
               </div>
 
+              {/* ✅ IMPROVED BUTTON: LANGSUNG MENYALA TANPA HOVER */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => checkoutMutation.mutate({ schedule_ids: selectedSlots })}
+                whileHover={selectedSlots.length > 0 ? { scale: 1.02 } : {}} 
+                whileTap={selectedSlots.length > 0 ? { scale: 0.98 } : {}}
                 disabled={selectedSlots.length === 0 || checkoutMutation.isPending}
-                className="group w-full py-7 bg-black text-white rounded-full font-black text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-2xl disabled:bg-black/20 disabled:text-black/40 transition-all"
+                onClick={handleCheckout}
+                className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all duration-500 italic text-[11px] shadow-xl flex items-center justify-center gap-3
+                  ${selectedSlots.length > 0 
+                    ? "bg-primary text-slate-900 shadow-primary/30 opacity-100 scale-100" 
+                    : "bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed scale-95"
+                  }`}
               >
                 {checkoutMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Syncing...</span>
-                  </div>
+                  <>
+                    <Loader2 className="animate-spin" size={16} /> Confirming...
+                  </>
                 ) : (
-                  <>Secure My Session <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" /></>
+                  <>
+                    {selectedSlots.length > 0 && <Zap size={14} fill="currentColor" />} Checkout Now
+                  </>
                 )}
               </motion.button>
               
-              <p className="mt-6 text-[8px] font-black uppercase tracking-[0.2em] text-center opacity-30">
-                Encrypted Transaction
+              <p className="text-center text-[8px] text-white/20 font-bold uppercase mt-6 tracking-widest px-4">
+                No hidden fees • Instant Confirmation
               </p>
-            </motion.div>
+            </div>
           </div>
+
         </div>
       </div>
     </div>

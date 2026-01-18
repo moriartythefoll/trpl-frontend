@@ -1,277 +1,87 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* ================================
-   THEME TOKENS (Tailwind v4)
-================================ */
 @theme {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2.5rem;
 
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --color-primary-foreground: var(--primary-fg);
+  --color-background: var(--bg-body);
+  --color-card: var(--bg-card);
 }
 
-/* ================================
-   ROOT VARIABLES
-================================ */
 :root {
-  --radius: 0.625rem;
-
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-
-  --destructive: oklch(0.577 0.245 27.325);
-
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* BASE - Silk White Look */
+  --bg-body: #F8FAFC; 
+  --bg-card: #FFFFFF;
+  --border-color: #F1F5F9;
+  
+  /* ROLE: USER - Oceanic Blue */
+  --primary: #0F172A; 
+  --primary-fg: #FFFFFF;
 }
 
-/* ================================
-   DARK MODE
-================================ */
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+.role-admin {
+  /* ROLE: ADMIN - Royal Purple Deep */
+  --primary: #312E81;
+  --primary-fg: #FFFFFF;
 }
 
-/* ================================
-   BASE LAYER
-================================ */
+.role-owner {
+  /* Sport Color Palette */
+  --bg-dark: #000000;
+  --bg-card: #0a0a0a;
+  --sport-volt: #d9ff00; /* Kuning Stabilo / Acid Green */
+  --sport-purple: #bc13fe;
+  --font-main: 'Poppins', sans-serif;
+}
+
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
   body {
-    @apply bg-background text-foreground;
+    /* Menambahkan font smoothing agar tipografi terlihat lebih mahal */
+    @apply bg-background text-slate-900 antialiased tracking-tight;
   }
 }
 
-/* ================================
-   COMPONENTS
-================================ */
 @layer components {
-  .input {
-    @apply bg-gray-100 px-4 py-3 rounded-lg my-2 outline-none text-sm;
+  /* Input: Minimalist Glass */
+  .input-field {
+    @apply w-full bg-white/50 border border-slate-200 rounded-2xl px-5 py-4 
+           text-slate-900 outline-none focus:bg-white focus:border-slate-900 
+           transition-all duration-500 placeholder:text-slate-300;
   }
 
-  .btn-main {
-    @apply bg-gradient-to-r from-blue-400 to-cyan-400
-      text-white font-bold py-3 rounded-full uppercase
-      text-sm tracking-wide transition active:scale-95;
+  /* Tombol: Quiet Luxury (No Shadows, Just Clean) */
+  .btn-primary {
+    @apply bg-slate-950 text-white px-10 py-4 rounded-full
+           font-bold uppercase tracking-[0.2em] text-[10px] transition-all 
+           active:scale-95 hover:bg-emerald-950
+           flex items-center justify-center gap-3;
   }
 
-  .ghost-btn {
-    @apply border-2 border-white text-white px-8 py-2
-      rounded-full uppercase font-bold text-sm;
+  /* Card: The "Floating" Effect */
+  .card-sporty {
+    @apply bg-white rounded-[2.5rem] p-8 
+           shadow-[0_20px_50px_rgba(0,0,0,0.02)] 
+           border border-white hover:border-slate-100
+           transition-all duration-500;
+  }
+
+}
+
+
+@layer utilities {
+  .text-glow-purple {
+    text-shadow: 0 0 10px rgba(192, 132, 252, 0.6);
+  }
+  .text-glow-cyan {
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+  }
+  /* Efek tulisan tembus pandang di background */
+  .outline-text {
+    -webkit-text-stroke: 1px rgba(255,255,255,0.05);
+    color: transparent;
   }
 }
-
-/* ==============================
-   GRADIENT TEXT
-============================== */
-.text-gradient-cyan {
-  background: linear-gradient(90deg, #06b6d4, #3b82f6, #9333ea);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* ==============================
-   PERSPECTIVE & CARD TILT
-============================== */
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-.card-3d {
-  transform-style: preserve-3d;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card-3d:hover {
-  transform: rotateY(5deg) rotateX(3deg) translateZ(10px);
-  box-shadow: 0 25px 50px rgba(0, 255, 255, 0.3);
-}
-
-/* ==============================
-   SMOOTH TRANSITION ALL
-============================== */
-.transition-all {
-  transition: all 0.3s ease-in-out;
-}
-
-/* ==============================
-   BUTTON HOVER EFFECTS
-============================== */
-.btn-hover-glow {
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-hover-glow::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(0,255,255,0.25) 0%, transparent 70%);
-  transform: scale(0);
-  transition: transform 0.5s ease;
-  pointer-events: none;
-}
-
-.btn-hover-glow:hover::before {
-  transform: scale(1);
-}
-
-/* ==============================
-   IMAGE OVERLAY ON HOVER
-============================== */
-.image-hover-overlay {
-  position: relative;
-  overflow: hidden;
-}
-
-.image-hover-overlay img {
-  transition: transform 0.7s ease, filter 0.5s ease;
-}
-
-.image-hover-overlay:hover img {
-  transform: scale(1.1) rotate(1deg);
-  filter: brightness(1.1);
-}
-
-.image-hover-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.image-hover-overlay:hover::after {
-  opacity: 1;
-}
-
-/* ==============================
-   SERVICES HOVER GLOW
-============================== */
-.service-hover-glow:hover {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
-  transform: translateY(-10px);
-}
-
-/* ==============================
-   CUSTOM SCROLLBAR (optional)
-============================== */
-::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-::-webkit-scrollbar-thumb {
-  background: #06b6d4;
-  border-radius: 10px;
-}
-
-
-/* Neon hover untuk tombol */
-.btn-hover-glow {
-  position: relative;
-  z-index: 0;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.btn-hover-glow::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, #0ff, #0ff, #0ff, #0ff);
-  opacity: 0;
-  transition: all 0.5s ease;
-  transform: rotate(45deg) scale(0);
-  z-index: -1;
-  filter: blur(15px);
-}
-
-.btn-hover-glow:hover::before {
-  opacity: 0.6;
-  transform: rotate(45deg) scale(1);
-}
-
-/* Optional: tambahin neon text glow */
-.btn-hover-glow:hover {
-  box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
-  color: #0ff;
-}
-

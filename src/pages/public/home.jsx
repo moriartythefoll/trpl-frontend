@@ -19,7 +19,7 @@ const Home = () => {
 
   // === HERO STATE ===
   const [items, setItems] = useState([
-    { id: 1, name: "BASKET", title: "BOOKING AT", desc: "Nikmati pengalaman bermain basket di lapangan standar internasional.", img: "/images/basketball-court-night.jpg" },
+    { id: 1, name: "FUTSAL", title: "BOOKING AT", desc: "Nikmati pengalaman bermain futsal di lapangan standar internasional.", img: "/images/futsal.jpg" },
     { id: 2, name: "VOLLY", title: "BOOKING AT", desc: "Lapangan voli indoor yang nyaman.", img: "/images/indoors-tennis-court.jpg" },
     { id: 3, name: "TENNIS", title: "BOOKING AT", desc: "Tingkatkan skill tenis Anda.", img: "/images/tennis.png" },
     { id: 4, name: "BADMINTON", title: "BOOKING AT", desc: "Fasilitas badminton terlengkap.", img: "/images/badminton.png" },
@@ -127,7 +127,7 @@ const Home = () => {
                 const venue = venues[index];
                 return (
                   <motion.div 
-                    key={venue.id}
+                    key={`venue-stack-${venue.id}-${offset}`}
                     animate={{ 
                       y: offset * 85, 
                       scale: 1 - Math.abs(offset) * 0.15, 

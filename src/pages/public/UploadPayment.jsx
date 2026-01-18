@@ -7,7 +7,7 @@ import userBookingService from "../../services/user/booking.service";
 import toast from "react-hot-toast";
 import {
   CloudUpload, X, ArrowLeft, Loader2, ShieldCheck, 
-  Calendar, Clock, MapPin, Zap
+  Calendar, Clock, MapPin, Zap, Info
 } from "lucide-react";
 
 export default function UploadPayment() {
@@ -28,6 +28,9 @@ export default function UploadPayment() {
     return rawData.data || rawData;
   }, [rawData, code]);
 
+  // Cek jika statusnya sudah pending (sudah upload sebelumnya)
+  const isPendingConfirmation = booking?.payment_status === "pending";
+
   const formatTime = (iso) => iso ? new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":") : "--:--";
   const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-";
   const formatIDR = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
@@ -37,8 +40,8 @@ export default function UploadPayment() {
       toast.error("Booking tidak ditemukan"); 
       navigate("/my-bookings"); 
     }
-    // Jika sudah bayar atau expired, tidak boleh ke halaman ini
-    if (booking && booking.payment_status !== "unpaid") {
+    // Hanya redirect jika sudah sukses (Access Granted)
+    if (booking && booking.payment_status === "success") {
       navigate("/my-bookings");
     }
   }, [booking, isError, navigate]);
@@ -55,7 +58,6 @@ export default function UploadPayment() {
     }
   };
 
-  // --- LOGIC UPLOAD YANG DIPERBAIKI ---
   const uploadMutation = useMutation({
     mutationFn: (formData) => userBookingService.uploadPayment(code, formData),
     onMutate: () => {
@@ -76,10 +78,8 @@ export default function UploadPayment() {
       toast.error("Please select an image first");
       return;
     }
-
     const fd = new FormData();
-    fd.append("payment_proof", file); // Pastikan key 'payment_proof' sesuai dengan yang diminta Backend
-
+    fd.append("payment_proof", file);
     uploadMutation.mutate(fd);
   };
 
@@ -152,15 +152,38 @@ export default function UploadPayment() {
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-5"
           >
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-xl h-full flex flex-col justify-between border border-slate-800">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-xl h-full flex flex-col justify-between border border-slate-800 relative overflow-hidden">
+              
+              {/* Overlay Jika Status Pending Confirmation */}
+              {isPendingConfirmation && (
+                <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-[2px] pointer-events-none" />
+              )}
+
               <div className="mb-6 text-center lg:text-left">
-                <h3 className="text-white font-black text-lg italic uppercase tracking-tight">Proof of Payment</h3>
-                <p className="text-slate-500 text-[10px] font-bold mt-1 uppercase">Upload your transfer receipt below</p>
+                <h3 className="text-white font-black text-lg italic uppercase tracking-tight">
+                   {isPendingConfirmation ? "Verification Process" : "Proof of Payment"}
+                </h3>
+                <p className="text-slate-500 text-[10px] font-bold mt-1 uppercase">
+                   {isPendingConfirmation ? "Our admin is checking your receipt" : "Upload your transfer receipt below"}
+                </p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-6 relative z-30">
                 <AnimatePresence mode="wait">
-                  {!preview ? (
+                  {isPendingConfirmation ? (
+                    /* TAMPILAN SAAT MENUNGGU KONFIRMASI */
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col items-center justify-center h-52 border-2 border-indigo-500/30 bg-indigo-500/5 rounded-[2rem] p-6 text-center"
+                    >
+                      <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4 relative">
+                        <Loader2 className="text-indigo-400 animate-spin absolute" size={32} />
+                        <ShieldCheck className="text-indigo-400" size={20} />
+                      </div>
+                      <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Awaiting Admin</span>
+                      <p className="text-[9px] text-slate-500 mt-2 leading-relaxed">Please wait, we are currently validating your transaction.</p>
+                    </motion.div>
+                  ) : !preview ? (
                     <motion.label 
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       className="flex flex-col items-center justify-center h-52 border-2 border-dashed border-slate-700 rounded-[2rem] cursor-pointer hover:bg-slate-800/50 hover:border-indigo-500 transition-all group"
@@ -184,22 +207,32 @@ export default function UploadPayment() {
                   )}
                 </AnimatePresence>
 
-                <button
-                  onClick={handleConfirm}
-                  disabled={!file || uploadMutation.isPending}
-                  className={`w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
-                    file && !uploadMutation.isPending 
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-900/20 active:scale-[0.98]' 
-                      : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                  }`}
-                >
-                  {uploadMutation.isPending ? (
-                    <Loader2 className="animate-spin" size={14}/>
-                  ) : (
-                    <Zap size={14}/>
-                  )}
-                  {uploadMutation.isPending ? "SENDING..." : "CONFIRM NOW"}
-                </button>
+                {/* TOMBOL YANG ADAPTIF */}
+                {isPendingConfirmation ? (
+                  <button
+                    onClick={() => navigate("/my-bookings")}
+                    className="w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] bg-white text-black hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <Info size={14} /> BACK TO LEDGER
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={!file || uploadMutation.isPending}
+                    className={`w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                      file && !uploadMutation.isPending 
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-900/20 active:scale-[0.98]' 
+                        : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                    }`}
+                  >
+                    {uploadMutation.isPending ? (
+                      <Loader2 className="animate-spin" size={14}/>
+                    ) : (
+                      <Zap size={14}/>
+                    )}
+                    {uploadMutation.isPending ? "SENDING..." : "CONFIRM NOW"}
+                  </button>
+                )}
                 
                 <div className="flex items-center justify-center gap-2 opacity-30">
                   <ShieldCheck size={12} className="text-white" />
