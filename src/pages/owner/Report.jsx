@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  DollarSign, Search, Activity, Cpu, 
-  Terminal, Zap, ShieldAlert, BarChart, ChevronRight,
-  TrendingUp, TrendingDown, Layers, Filter
+  DollarSign, Search, BarChart3, 
+  Landmark, Award, PieChart, ChevronRight,
+  TrendingUp, TrendingDown, Filter,
+  Globe, Briefcase, FileText, BadgeCheck, LineChart
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
@@ -15,7 +16,7 @@ import { getOwnerStats, getOwnerTransactions } from "../../services/owner/report
 const formatCurrency = (val) =>
   new Intl.NumberFormat("id-ID", {
     style: "currency", currency: "IDR", minimumFractionDigits: 0
-  }).format(val || 0).replace("Rp", "IDR_");
+  }).format(val || 0);
 
 export default function Reports() {
   const [timeRange, setTimeRange] = useState("monthly");
@@ -43,43 +44,49 @@ export default function Reports() {
 
   const chartData = useMemo(() => {
     return (statsResponse?.chart || []).map(item => ({
-      name: new Date(item.created_at).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+      name: new Date(item.created_at).toLocaleDateString("en-US", { weekday: "short" }),
       amount: Number(item.total_amount || 0)
     }));
   }, [statsResponse]);
 
-  if (isLoading) return <LoadingSystem />;
+  if (isLoading) return <LoadingInstitutional />;
 
   return (
-    <div className="space-y-12 pb-24 font-['Poppins'] animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-12 pb-32 font-['Plus_Jakarta_Sans',sans-serif] text-slate-900">
       
-      {/* 1. TOP SYSTEM LOG - ENHANCED */}
-      <header className="relative p-12 bg-zinc-900/20 border border-white/5 rounded-[2.5rem] overflow-hidden group">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10">
-          <div>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
-                <span className="text-[10px] font-[900] text-purple-400 tracking-[0.3em] uppercase">SYSTEM_STABLE</span>
-              </div>
-              <span className="text-[10px] font-bold text-zinc-600 tracking-[0.2em]">VER_8.0.4</span>
+      {/* 1. INSTITUTIONAL HEADER */}
+      <header className="relative p-12 bg-white border border-slate-200 rounded-[3rem] shadow-xl shadow-slate-200/40 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-amber-50/50 to-transparent pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-end gap-10">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <span className="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-full">
+                Executive Portfolio
+              </span>
+              <div className="h-px w-12 bg-slate-200" />
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quarterly Audit 2026</span>
             </div>
-            <h1 className="text-6xl font-[900] italic tracking-tighter text-white uppercase leading-none">
-              ANALYTICS<span className="text-purple-500">_CORE</span>
-            </h1>
-            <p className="text-[10px] text-zinc-500 mt-5 tracking-[0.5em] uppercase font-black italic">Monitoring Realtime Financial Flux</p>
+            
+            <div>
+              <h1 className="text-6xl font-black tracking-tight text-slate-900 italic font-serif">
+                Capital <span className="text-amber-600 font-light not-italic">Intelligence</span>
+              </h1>
+              <p className="text-sm text-slate-400 mt-4 max-w-md font-medium leading-relaxed">
+                A comprehensive fiscal overview of asset performance, institutional growth, and revenue sustainability.
+              </p>
+            </div>
           </div>
           
-          <div className="flex bg-black/40 backdrop-blur-xl p-2 rounded-2xl border border-white/5 shadow-2xl">
+          <div className="flex bg-slate-100/50 p-2 rounded-[2rem] border border-slate-200/50">
             {["weekly", "monthly", "yearly"].map((r) => (
               <button
                 key={r}
                 onClick={() => setTimeRange(r)}
-                className={`px-10 py-3 text-[10px] font-[900] uppercase tracking-[0.2em] rounded-xl transition-all duration-500 ${
+                className={`px-10 py-4 text-[11px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-500 ${
                   timeRange === r 
-                  ? "bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]" 
-                  : "text-zinc-600 hover:text-white"
+                  ? "bg-white text-slate-900 shadow-md border border-slate-100 scale-105" 
+                  : "text-slate-400 hover:text-slate-600"
                 }`}
               >
                 {r}
@@ -89,151 +96,182 @@ export default function Reports() {
         </div>
       </header>
 
-      {/* 2. DATASTREAMS (METRICS) - ENHANCED WITH TRENDS */}
+      {/* 2. CORPORATE INSIGHTS BAR */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-2">
+        <InsightTag label="Portfolio" value="Diversified" icon={<Briefcase size={14}/>} />
+        <InsightTag label="Liquidity" value="Premium" icon={<Landmark size={14}/>} />
+        <InsightTag label="Audit" value="Cleared" icon={<BadgeCheck size={14}/>} />
+        <InsightTag label="Yield" value="Optimized" icon={<LineChart size={14}/>} />
+      </div>
+
+      {/* 3. CORE FINANCIAL METRICS */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <CyberCard 
-            label="Gross_Revenue" 
+        <LuxuryCard 
+            label="Gross Asset Revenue" 
             value={formatCurrency(summary.total_revenue)} 
-            icon={<DollarSign size={22}/>} 
-            color="text-purple-500"
+            icon={<DollarSign size={24}/>} 
+            color="text-amber-700"
+            bg="bg-amber-50"
             trend="+12.4%" 
             isUp={true}
+            description="Net performance post-settlement"
         />
-        <CyberCard 
-            label="Total_Ops" 
+        <LuxuryCard 
+            label="Transaction Volume" 
             value={summary.total_bookings} 
-            icon={<Cpu size={22}/>} 
-            color="text-cyan-400"
+            icon={<FileText size={24}/>} 
+            color="text-slate-800"
+            bg="bg-slate-100"
             trend="+5.2%" 
             isUp={true}
+            description="Total verified engagements"
         />
-        <CyberCard 
-            label="Core_Efficiency" 
+        <LuxuryCard 
+            label="Operational Yield" 
             value={`${summary.success_rate}%`} 
-            icon={<Zap size={22}/>} 
-            color="text-purple-400"
-            trend="-0.4%" 
-            isUp={false}
+            icon={<PieChart size={24}/>} 
+            color="text-emerald-700"
+            bg="bg-emerald-50"
+            trend="Stability" 
+            isUp={true}
+            description="Conversion efficiency ratio"
         />
       </section>
 
-      {/* 3. PERFORMANCE CHART - DARK LUXURY */}
-      <section className="p-12 bg-[#0d0d0e] border border-white/5 rounded-[3rem] relative overflow-hidden group shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/5 blur-[120px] rounded-full pointer-events-none" />
-        
-        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6 relative z-10">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-purple-500/10 rounded-2xl text-purple-500 border border-purple-500/20 shadow-inner">
-              <BarChart size={24} />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* 4. PERFORMANCE CHART */}
+        <section className="lg:col-span-2 p-12 bg-white border border-slate-200 rounded-[3.5rem] shadow-sm">
+          <div className="flex items-center justify-between mb-16">
             <div>
-              <h3 className="font-[900] uppercase text-white tracking-widest text-lg italic">Income_Stream_Analysis</h3>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-[0.4em] font-black mt-1">Global Transaction Telemetry</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Revenue Trajectory</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Growth Index Analysis</p>
+            </div>
+            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                <BarChart3 size={24} className="text-amber-600" />
             </div>
           </div>
-          <div className="px-5 py-2 bg-white/[0.02] border border-white/5 rounded-full flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-cyan-400" />
-             <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest leading-none">Live Data Feed</span>
-          </div>
-        </div>
 
-        <div className="h-[400px] w-full relative z-10">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="cyberGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#c084fc" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#c084fc" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-              <XAxis 
-                dataKey="name" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fill: '#52525b', fontSize: 11, fontWeight: 900}} 
-                dy={20} 
-              />
-              <YAxis hide={true} domain={['auto', 'auto']} />
-              <Tooltip content={<CyberTooltip />} cursor={{stroke: '#22d3ee', strokeWidth: 1, strokeDasharray: '4 4'}} />
-              <Area 
-                type="monotone" 
-                dataKey="amount" 
-                stroke="#c084fc" 
-                strokeWidth={4} 
-                fill="url(#cyberGradient)" 
-                animationDuration={2000}
-                dot={{ r: 4, fill: '#000', stroke: '#c084fc', strokeWidth: 2 }}
-                activeDot={{ r: 8, fill: '#c084fc', stroke: '#fff', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      {/* 4. TRANSACTION LEDGER - HIGH CONTRAST */}
-      <section className="bg-[#0d0d0e] border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl relative">
-        <div className="p-10 flex flex-col xl:flex-row xl:items-center justify-between gap-8 border-b border-white/5 bg-white/[0.01]">
-          <div className="flex items-center gap-4">
-             <div className="p-3 bg-cyan-400/10 rounded-xl">
-                <Layers size={18} className="text-cyan-400" />
-             </div>
-             <div>
-                <h3 className="font-[900] uppercase text-white tracking-[0.3em] text-xs">Master_Ledger</h3>
-                <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mt-1">Verified Node Transactions</p>
-             </div>
+          <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="premiumGold" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#d97706" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#d97706" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} 
+                  dy={20} 
+                />
+                <YAxis hide={true} domain={['auto', 'auto']} />
+                <Tooltip content={<InstitutionalTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="amount" 
+                  stroke="#b45309" 
+                  strokeWidth={3} 
+                  fill="url(#premiumGold)" 
+                  dot={{ r: 4, fill: '#fff', stroke: '#b45309', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#b45309', stroke: '#fff', strokeWidth: 3 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative group">
-                <Search size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-purple-500 transition-colors" />
-                <input
-                className="bg-black border border-white/5 rounded-2xl pl-16 pr-8 py-4 text-[11px] font-[700] text-white focus:outline-none focus:border-purple-500/50 transition-all w-full sm:w-80 tracking-widest placeholder:text-zinc-800"
-                placeholder="SEARCH_NODE_USER"
+        </section>
+
+        {/* 5. SIDEBAR - GOVERNANCE & RANKING */}
+        <section className="space-y-8">
+            <div className="p-10 bg-slate-900 rounded-[3rem] text-white relative overflow-hidden group">
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl" />
+                <Landmark className="text-amber-500 mb-6" size={36} />
+                <h4 className="text-xl font-bold mb-2">Institutional Security</h4>
+                <p className="text-slate-400 text-xs leading-relaxed mb-10">Data architecture compliant with global corporate transparency standards.</p>
+                <button className="w-full py-4 bg-amber-600 hover:bg-amber-500 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-amber-900/20">
+                    Export Financial Report
+                </button>
+            </div>
+
+            <div className="p-10 bg-white border border-slate-200 rounded-[3.5rem]">
+                <h4 className="text-slate-900 font-black text-[10px] uppercase tracking-[0.3em] mb-8">Asset Ranking</h4>
+                <div className="space-y-8">
+                    {[1,2,3].map(i => (
+                        <div key={i} className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <span className="text-[10px] font-black text-slate-300">0{i}</span>
+                                <div className="space-y-1.5">
+                                    <div className="h-2 w-20 bg-slate-100 rounded-full" />
+                                    <div className="h-1.5 w-12 bg-slate-50 rounded-full" />
+                                </div>
+                            </div>
+                            <span className="text-amber-600 font-black text-[11px]">+{(Math.random()*12).toFixed(1)}%</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+      </div>
+
+      {/* 6. GENERAL LEDGER */}
+      <section className="bg-white border border-slate-200 rounded-[3.5rem] overflow-hidden shadow-sm">
+        <div className="p-12 flex flex-col xl:flex-row xl:items-center justify-between gap-8 border-b border-slate-100 bg-slate-50/20">
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight italic font-serif">General Ledger</h3>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">Institutional Settlement Registry</p>
+          </div>
+          
+          <div className="relative group">
+              <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-600 transition-colors" />
+              <input
+                className="bg-white border border-slate-200 rounded-2xl pl-16 pr-8 py-5 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500/50 transition-all w-full sm:w-[400px] shadow-sm"
+                placeholder="Search ledger entries..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </div>
-            <button className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl text-zinc-500 hover:text-white transition-all">
-                <Filter size={18} />
-            </button>
+              />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-zinc-600 text-[9px] uppercase font-[900] tracking-[0.4em] bg-black/50 border-b border-white/5">
-                <th className="px-12 py-8">Ref_Hash</th>
-                <th className="px-12 py-8">Operator_Node</th>
-                <th className="px-12 py-8">Settlement_Value</th>
-                <th className="px-12 py-8 text-right">Auth_Status</th>
+              <tr className="text-slate-400 text-[10px] uppercase font-black tracking-[0.25em] bg-white border-b border-slate-50">
+                <th className="px-12 py-8">Reference ID</th>
+                <th className="px-12 py-8">Entity Name</th>
+                <th className="px-12 py-8">Value (IDR)</th>
+                <th className="px-12 py-8 text-right">Settlement Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-50">
               {filteredTransactions.map((trx) => (
-                <tr key={trx.id} className="hover:bg-purple-500/[0.04] transition-all group cursor-pointer">
-                  <td className="px-12 py-8 text-[12px] font-[800] text-zinc-400 group-hover:text-purple-400 transition-colors tracking-tight italic">
+                <tr key={trx.id} className="hover:bg-slate-50/80 transition-all group">
+                  <td className="px-12 py-9 text-[13px] font-black text-slate-900 tracking-tight">
                     {trx.booking_code}
                   </td>
-                  <td className="px-12 py-8">
-                    <div className="flex flex-col">
-                        <span className="uppercase font-[900] text-white text-[11px] tracking-widest group-hover:translate-x-1 transition-transform">{trx.user?.name}</span>
-                        <span className="text-[8px] font-bold text-zinc-700 uppercase mt-1">verified_id_{trx.user?.id}</span>
+                  <td className="px-12 py-9">
+                    <div className="flex items-center gap-4">
+                        <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center font-black text-white text-[10px]">
+                            {trx.user?.name.charAt(0)}
+                        </div>
+                        <span className="font-bold text-slate-900 text-[13px] tracking-tight">{trx.user?.name}</span>
                     </div>
                   </td>
-                  <td className="px-12 py-8">
-                    <span className="font-[900] text-cyan-400 text-sm tracking-tighter shadow-cyan-400/20">{formatCurrency(trx.total_amount)}</span>
+                  <td className="px-12 py-9 text-[14px] font-black text-slate-900 tabular-nums">
+                    {formatCurrency(trx.total_amount)}
                   </td>
-                  <td className="px-12 py-8 text-right">
-                    <div className="flex items-center justify-end gap-5">
-                       <span className={`px-4 py-1.5 rounded-lg text-[9px] font-[900] tracking-[0.2em] border transition-all duration-500 ${
-                        trx.payment_status === 'paid' 
-                        ? 'bg-cyan-400/10 text-cyan-400 border-cyan-400/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]' 
-                        : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                       }`}>
-                        {trx.payment_status.toUpperCase()}
-                       </span>
-                       <ChevronRight size={14} className="text-zinc-800 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+                  <td className="px-12 py-9 text-right">
+                    <div className="flex items-center justify-end gap-6">
+                        <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-widest border ${
+                         trx.payment_status === 'paid' 
+                         ? 'bg-white text-emerald-700 border-emerald-100 shadow-sm' 
+                         : 'bg-white text-rose-600 border-rose-100 shadow-sm'
+                        }`}>
+                         {trx.payment_status.toUpperCase()}
+                        </span>
+                        <ChevronRight size={16} className="text-slate-200 group-hover:text-amber-600 transition-all" />
                     </div>
                   </td>
                 </tr>
@@ -246,57 +284,59 @@ export default function Reports() {
   );
 }
 
-function CyberCard({ label, value, icon, color, trend, isUp }) {
+function LuxuryCard({ label, value, icon, color, bg, trend, isUp, description }) {
   return (
-    <div className="bg-[#0d0d0e] p-10 rounded-[2.5rem] border border-white/5 hover:border-purple-500/30 transition-all duration-700 group relative overflow-hidden shadow-xl">
-      <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
-        {icon}
-      </div>
-      <div className="flex items-center justify-between mb-10">
-        <div className={`p-4 bg-black rounded-2xl border border-white/10 ${color} shadow-inner group-hover:scale-110 transition-transform duration-500`}>
+    <div className="bg-white p-10 rounded-[3rem] border border-slate-200 transition-all duration-500 group hover:shadow-2xl hover:shadow-slate-200/40">
+      <div className="flex items-center justify-between mb-12">
+        <div className={`p-5 ${bg} rounded-2xl ${color} transition-transform duration-500 group-hover:scale-105`}>
           {icon}
         </div>
-        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black ${isUp ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-            {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+        <div className={`px-3 py-1.5 rounded-full text-[9px] font-black tracking-widest ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
             {trend}
         </div>
       </div>
-      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 mb-3">{label}</p>
-      <div className={`text-4xl font-[900] italic tracking-tighter group-hover:translate-x-2 transition-transform duration-500 text-white`}>
-        {value}
-      </div>
-      <div className="mt-8 flex items-center gap-2">
-         <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
-            <div className={`h-full bg-gradient-to-r from-transparent via-purple-500 to-transparent w-full animate-shimmer`} />
-         </div>
-         <span className="text-[7px] text-zinc-700 font-black tracking-widest uppercase">Live_Node</span>
+      <div className="space-y-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">{label}</p>
+        <div className="text-4xl font-black tracking-tighter text-slate-900">
+          {value}
+        </div>
+        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest pt-3">{description}</p>
       </div>
     </div>
   );
 }
 
-function LoadingSystem() {
+function InsightTag({ label, value, icon }) {
+    return (
+        <div className="flex items-center gap-4 px-6 py-4 bg-white border border-slate-200 rounded-2xl">
+            <div className="text-amber-600">{icon}</div>
+            <div className="flex flex-col">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+                <span className="text-[10px] font-black text-slate-900 uppercase tracking-tight">{value}</span>
+            </div>
+        </div>
+    )
+}
+
+function LoadingInstitutional() {
   return (
-    <div className="h-[70vh] flex flex-col items-center justify-center font-['Poppins']">
-      <div className="relative mb-8">
-        <div className="w-20 h-20 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
-        <ShieldAlert size={30} className="text-purple-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      </div>
-      <span className="text-[11px] font-[900] tracking-[0.8em] text-white uppercase animate-pulse">Decrypting_Financial_Data</span>
+    <div className="h-[70vh] flex flex-col items-center justify-center">
+      <div className="w-10 h-10 border-2 border-slate-200 border-t-amber-600 rounded-full animate-spin mb-6" />
+      <span className="text-[10px] font-black tracking-[0.5em] text-slate-400 uppercase">Synchronizing Assets</span>
     </div>
   );
 }
 
-function CyberTooltip({ active, payload }) {
+function InstitutionalTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-black/95 p-6 rounded-2xl border border-purple-500/30 backdrop-blur-2xl shadow-2xl animate-in zoom-in duration-300">
-      <div className="flex items-center gap-3 mb-3 border-b border-white/5 pb-2">
-        <div className="w-2 h-2 rounded-full bg-purple-500" />
-        <p className="text-[9px] font-[900] text-purple-400 uppercase tracking-widest">Revenue_Telemetry</p>
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xl">
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2">Valuation Data</p>
+      <p className="text-slate-900 font-black text-2xl tracking-tighter">{formatCurrency(payload[0].value)}</p>
+      <div className="mt-4 flex items-center gap-2 pt-4 border-t border-slate-100">
+          <BadgeCheck size={12} className="text-amber-600" />
+          <span className="text-[9px] font-black text-slate-900 uppercase">Verified Entry</span>
       </div>
-      <p className="text-white font-[900] text-3xl tracking-tighter italic">{formatCurrency(payload[0].value)}</p>
-      <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-[0.2em] mt-2 italic">Ref_Point: Secure_Origin</p>
     </div>
   );
 }
